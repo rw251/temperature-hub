@@ -1,0 +1,144 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      height: 90%;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #4caf50;
+      font-size: 20 px;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      margin: 4px 2px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="myChart"></canvas>
+  <div id="footer">
+    <button id="refresh">Refresh</button>
+    <button id="toggle">Toggle</button>
+  </div>
+  <!-- <table id="results"></table> -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.1/dist/chart.umd.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
+  <script type="text/javascript">
+    document.getElementById('refresh').addEventListener('click', (e) => {
+      window.location.reload();
+    });
+    const ctx = document.getElementById('myChart');
+    var rooms = {};
+    fetch('data/data.txt').then(x => x.text()).then(data => {
+      data
+        .split('\n')
+        .filter(x => x.trim().length > 5)
+        .forEach(line => {
+          const [dt, loc, col, temp, hum, dp, battery] = line.split('\t');
+          if (!rooms[loc]) {
+            rooms[loc] = Object.keys(rooms).length + 1;
+            chartConfig.data.datasets.push({ label: loc, data: [] })
+          }
+          chartConfig.data.datasets[rooms[loc] - 1].data.push({ x: dt, y: dp });
+        })
+      new Chart(ctx, chartConfig);
+    });
+
+    var chartConfig = {
+      type: 'line',
+      data: {
+        datasets: [],
+      },
+      options: {
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'nearest',
+        },
+        stacked: true,
+        responsive: true,
+        spanGaps: true,
+        elements: {
+          point: {
+            radius: 0,
+          },
+        },
+        plugins: {
+          zoom: {
+            limits: {
+              x: { min: 'original', max: 'original' },
+            },
+            pan: {
+              enabled: true,
+              mode: 'x',
+              onPanStart: (e) => {
+                if (e.chart.getZoomLevel() <= 1) return false;
+              },
+            },
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true,
+              },
+              mode: 'x',
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              displayFormats: {
+                millisecond: 'dd HH',
+                second: 'dd HH',
+                minute: 'dd HH',
+                hour: 'dd HH',
+                day: 'MMM dd',
+                week: 'MMM dd',
+                month: 'MMM',
+                quarter: 'MMM',
+                year: 'yyyy MMM',
+              },
+            },
+          },
+          y: {
+            type: 'linear',
+            display: true,
+            stacked: false,
+            position: 'left',
+            min: 0,
+            title: {
+              text: 'C',
+              display: true,
+            },
+          },
+        },
+      },
+    }
+  </script>
+</body>
+
+</html>

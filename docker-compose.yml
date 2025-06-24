@@ -1,0 +1,71 @@
+services:
+  python-mqtt:
+    container_name: temperature-hub-mqtt
+    build:
+      context: .
+      dockerfile: python-mqtt.Dockerfile
+    volumes:
+      - ./data/shared:/data
+    healthcheck:
+      # This is an example healthcheck. You may need to install mosquitto-clients
+      # in your python-mqtt.Dockerfile or use a different command to check if the broker is ready.
+      test:
+        [
+          "CMD",
+          "mosquitto_sub",
+          "-t",
+          "$$SYS/broker/version",
+          "-C",
+          "1",
+          "-h",
+          "localhost",
+          "-W",
+          "2",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    ports:
+      - "1883:1883"
+
+  webserver:
+    container_name: temperature-hub-webserver
+    build:
+      context: .
+      dockerfile: webserver.Dockerfile
+    volumes:
+      - ./data/shared:/app/data
+    ports:
+      - "8000:8000"
+
+  zigbee2mqtt:
+    container_name: temperature-hub-zigbee2mqtt
+    image: ghcr.io/koenkk/zigbee2mqtt
+    restart: unless-stopped
+    volumes:
+      - ./data/zigbee2mqtt:/app/data # Persistent data for Z2M
+    ports:
+      # Frontend port
+      - 8080:8080
+    environment:
+      # - ZIGBEE2MQTT_CONFIG_MQTT_BASE_TOPIC=zigbee2mqtt
+      # - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://python-mqtt:1883
+      # - ZIGBEE2MQTT_CONFIG_MQTT_INCLUDE_DEVICE_INFORMATION=true
+      # - ZIGBEE2MQTT_CONFIG_SERIAL_PORT=tcp://192.168.1.11:8888
+      # - ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER=ezsp
+      # # for v2.0.0
+      # - ZIGBEE2MQTT_CONFIG_HOMEASSISTANT={"enabled":false}
+      # - ZIGBEE2MQTT_CONFIG_FRONTEND={"enabled":true,"port":8080}
+      # - ZIGBEE2MQTT_CONFIG_DEVICES={"0xa4c138a9e5a357ce":{"friendly_name":"brown"}, "0xa4c138ced006cc5a":{"friendly_name":"black"}}
+      # - ZIGBEE2MQTT_CONFIG_EXTERNAL_EXTENSIONS='["DewPointExtension.js"]'
+      # for v1.42.0
+      # - ZIGBEE2MQTT_CONFIG_HOMEASSISTANT=false
+      # - ZIGBEE2MQTT_CONFIG_FRONTEND=true
+      - TZ=Europe/London
+      - Z2M_ONBOARD_NO_SERVER=1
+    # network_mode: host
+    # privileged: true
+    depends_on:
+      python-mqtt:
+        condition: service_healthy

@@ -1,0 +1,24 @@
+{
+  "locations": [
+    "hall",
+    "main",
+    "boys",
+    "box",
+    "bath",
+    "landing",
+    "hall",
+    "front",
+    "back",
+    "kitchen",
+    "loft",
+    "extension",
+    "garage"
+  ],
+  "devices": ["lilac", "mauve", "black", "brown"],
+  "mapping": {
+    "lilac": "loft",
+    "mauve": "main",
+    "black": "boys",
+    "brown": "hall"
+  }
+}
