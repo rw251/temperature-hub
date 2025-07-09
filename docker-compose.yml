@@ -6,6 +6,7 @@ services:
       dockerfile: python-mqtt.Dockerfile
     volumes:
       - ./data/shared:/data
+      - ./src:/app
     healthcheck:
       # This is an example healthcheck. You may need to install mosquitto-clients
       # in your python-mqtt.Dockerfile or use a different command to check if the broker is ready.
@@ -36,6 +37,7 @@ services:
       dockerfile: webserver.Dockerfile
     volumes:
       - ./data/shared:/app/data
+      - ./web:/app
     ports:
       - "8000:8000"
 
