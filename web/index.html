@@ -140,7 +140,6 @@
               x: dt,
               y: mode === 'dp' ? dp : temp
             });
-            chartConfig.data.datasets[rooms[loc] - 1].data.push({ x: dt, y: dp });
           })
         if (chart) chart.destroy();
         chart = new Chart(ctx, chartConfig);
