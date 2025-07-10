@@ -72,8 +72,8 @@
       <thead>
         <tr>
           <th>Room</th>
-          <th>Temp (°C)</th>
-          <th>Time</th>
+          <th>Now</th>
+          <th>Was</th>
           <th>Last 3h</th>
           <th>Trend</th>
         </tr>
@@ -139,8 +139,9 @@
         const arrPerMinute = Object.values(perMinute).sort((a, b) => new Date(a.dt) - new Date(b.dt));
         
         const latest = arrPerMinute[arrPerMinute.length - 1];
-        const prev = arrPerMinute.length > 1 ? arrPerMinute[arrPerMinute.length - 2] : latest;
-        
+        const first = filtered[0];
+        const firstTemp = first ? first.temp : '';
+        const firstTime = first ? new Date(first.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         // Convert UTC time to local time string
         const localTime = new Date(latest.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         // Get last 3 hours of data
@@ -215,8 +216,8 @@
 
         const row = `<tr>
           <td>${room}</td>
-          <td>${latest.temp}</td>
-          <td>${localTime}</td>
+          <td>${latest.temp} (${localTime})</td>
+          <td>${firstTemp} (${firstTime})</td>
           <td class="sparkline-cell">
             <svg class="spark-${room}" width="100" height="20" stroke-width="2" stroke="blue" fill="rgba(0, 0, 255, .2)"></svg>
             <span class="tooltip" hidden="true"></span>
