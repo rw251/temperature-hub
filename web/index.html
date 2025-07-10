@@ -88,7 +88,7 @@
     function updateSummaryTable(roomData) {
       const tbody = document.getElementById('summary-table').querySelector('tbody');
       tbody.innerHTML = '';
-      Object.entries(roomData).forEach(([room, arr]) => {
+      Object.entries(roomData).forEach(([room, {id, data:arr}]) => {
         const latest = arr[arr.length - 1];
         const prev = arr.length > 1 ? arr[arr.length - 2] : latest;
         const trend = latest.temp > prev.temp ? '↑ Rising' : (latest.temp < prev.temp ? '↓ Falling' : '→ Steady');
@@ -170,10 +170,11 @@
         .forEach(line => {
           const [dt, loc, col, temp, hum, dp, battery] = line.split('\t');
           if (!rooms[loc]) {
-            rooms[loc] = Object.keys(rooms).length + 1;
+            rooms[loc] = {id: Object.keys(rooms).length + 1, data:[]};
             chartConfig.data.datasets.push({ label: loc, data: [] });
           }
-          chartConfig.data.datasets[rooms[loc] - 1].data.push({
+          rooms[loc].data.push({ dt, temp: parseFloat(temp), dp: parseFloat(dp) });
+          chartConfig.data.datasets[rooms[loc].id].data.push({
             x: dt,
             y: mode === 'dp' ? dp : temp
           });
