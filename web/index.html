@@ -29,6 +29,15 @@
       margin: 4px 2px;
       cursor: pointer;
     }
+    #chart-section {
+      height: 80vh;
+      max-width: 100%;
+    }
+    #myChart {
+      height: 100% !important;
+      width: 100% !important;
+      display: block;
+    }
   </style>
 </head>
 
@@ -105,9 +114,42 @@
           responsive: true,
           spanGaps: true,
           elements: { point: { radius: 0 } },
-          plugins: { zoom: { /* ... your zoom config ... */ } },
+          plugins: { zoom: {
+              limits: {
+                x: { min: 'original', max: 'original' },
+              },
+              pan: {
+                enabled: true,
+                mode: 'x',
+                onPanStart: (e) => {
+                  if (e.chart.getZoomLevel() <= 1) return false;
+                },
+              },
+              zoom: {
+                wheel: {
+                  enabled: true,
+                },
+                pinch: {
+                  enabled: true,
+                },
+                mode: 'x',
+              },
+            },
+          },
           scales: {
-            x: { type: 'time', time: { /* ... */ } },
+            x: { type: 'time', time: {
+                displayFormats: {
+                  millisecond: 'dd HH',
+                  second: 'dd HH',
+                  minute: 'dd HH',
+                  hour: 'dd HH',
+                  day: 'MMM dd',
+                  week: 'MMM dd',
+                  month: 'MMM',
+                  quarter: 'MMM',
+                  year: 'yyyy MMM',
+                },
+              } },
             y: {
               type: 'linear',
               display: true,
