@@ -139,9 +139,6 @@
         const arrPerMinute = Object.values(perMinute).sort((a, b) => new Date(a.dt) - new Date(b.dt));
         
         const latest = arrPerMinute[arrPerMinute.length - 1];
-        const first = filtered[0];
-        const firstTemp = first ? first.temp : '';
-        const firstTime = first ? new Date(first.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         // Convert UTC time to local time string
         const localTime = new Date(latest.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         // Get last 3 hours of data
@@ -150,7 +147,10 @@
         const threeHoursAgo = now - 3 * 60 * 60 * 1000;
         const filtered = arrPerMinute
           .filter(d => (new Date(d.dt + 'Z')).getTime() >= threeHoursAgo);
-
+        const first = filtered[0];
+        const firstTemp = first ? first.temp : '';
+        const firstTime = first ? new Date(first.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        
         const minTemp = Math.min(...filtered.map(d => d.temp));
         const maxTemp = Math.max(...filtered.map(d => d.temp));
         const sparkData = filtered
