@@ -224,10 +224,9 @@
         const latest = arrPerMinute[arrPerMinute.length - 1];
         // Convert UTC time to local time string
         const localTime = new Date(latest.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        // Get last 3 hours of data
-        // Get last 3 hours of data
+        // Get last 3.5 hours of data
         const now = Date.now();
-        const threeHoursAgo = now - 3 * 60 * 60 * 1000;
+        const threeHoursAgo = now - 3.5 * 60 * 60 * 1000;
         const filtered = arrPerMinute
           .filter(d => (new Date(d.dt + 'Z')).getTime() >= threeHoursAgo);
         const first = filtered[0];
