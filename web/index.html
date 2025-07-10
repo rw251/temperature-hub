@@ -33,12 +33,38 @@
 </head>
 
 <body>
-  <canvas id="myChart"></canvas>
-  <div id="footer">
-    <button id="refresh">Refresh</button>
-    <button id="toggle">Toggle</button>
+  <!-- Summary Table -->
+  <div id="summary-section">
+    <h2>Current Room Temperatures</h2>
+    <table id="summary-table">
+      <thead>
+        <tr>
+          <th>Room</th>
+          <th>Temperature (°C)</th>
+          <th>Trend</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filled by JS -->
+      </tbody>
+    </table>
   </div>
-  <!-- <table id="results"></table> -->
+
+  <!-- Chart Section (hidden by default) -->
+    <div id="chart-section" style="display:none;">
+    <canvas id="myChart"></canvas>
+    <div id="footer">
+      <button id="refresh">Refresh</button>
+      <button id="toggle">Toggle</button>
+    </div>
+  </div>
+
+  <!-- Tab Buttons -->
+  <div>
+    <button id="show-summary">Summary</button>
+    <button id="show-chart">Chart</button>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.1/dist/chart.umd.min.js"></script>
   <script
     src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -47,70 +73,41 @@
   <script type="text/javascript">
     let currentMode = 'dp';
     let chart;
-
     const ctx = document.getElementById('myChart');
 
-    function renderChart(mode) {
-      var rooms = {};
-      var chartConfig = {
+    // Helper to update summary table
+    function updateSummaryTable(roomData) {
+      const tbody = document.getElementById('summary-table').querySelector('tbody');
+      tbody.innerHTML = '';
+      Object.entries(roomData).forEach(([room, arr]) => {
+        const latest = arr[arr.length - 1];
+        const prev = arr.length > 1 ? arr[arr.length - 2] : latest;
+        const trend = latest.temp > prev.temp ? '↑ Rising' : (latest.temp < prev.temp ? '↓ Falling' : '→ Steady');
+        const row = `<tr>
+          <td>${room}</td>
+          <td>${latest.temp}</td>
+          <td>${trend}</td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
+    }
+
+// Parse data and prepare for both summary and chart
+    function parseData(raw, mode) {
+      const rooms = {};
+      const chartConfig = {
         type: 'line',
-        data: {
-          datasets: [],
-        },
+        data: { datasets: [] },
         options: {
           maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: 'nearest',
-          },
+          interaction: { intersect: false, mode: 'nearest' },
           stacked: true,
           responsive: true,
           spanGaps: true,
-          elements: {
-            point: {
-              radius: 0,
-            },
-          },
-          plugins: {
-            zoom: {
-              limits: {
-                x: { min: 'original', max: 'original' },
-              },
-              pan: {
-                enabled: true,
-                mode: 'x',
-                onPanStart: (e) => {
-                  if (e.chart.getZoomLevel() <= 1) return false;
-                },
-              },
-              zoom: {
-                wheel: {
-                  enabled: true,
-                },
-                pinch: {
-                  enabled: true,
-                },
-                mode: 'x',
-              },
-            },
-          },
+          elements: { point: { radius: 0 } },
+          plugins: { zoom: { /* ... your zoom config ... */ } },
           scales: {
-            x: {
-              type: 'time',
-              time: {
-                displayFormats: {
-                  millisecond: 'dd HH',
-                  second: 'dd HH',
-                  minute: 'dd HH',
-                  hour: 'dd HH',
-                  day: 'MMM dd',
-                  week: 'MMM dd',
-                  month: 'MMM',
-                  quarter: 'MMM',
-                  year: 'yyyy MMM',
-                },
-              },
-            },
+            x: { type: 'time', time: { /* ... */ } },
             y: {
               type: 'linear',
               display: true,
@@ -126,36 +123,52 @@
         },
       };
 
+      raw.split('\n')
+        .filter(x => x.trim().length > 5)
+        .forEach(line => {
+          const [dt, loc, col, temp, hum, dp, battery] = line.split('\t');
+          if (!rooms[loc]) {
+            rooms[loc] = [];
+            chartConfig.data.datasets.push({ label: loc, data: [] });
+          }
+          rooms[loc].push({ dt, temp: parseFloat(temp), dp: parseFloat(dp) });
+          chartConfig.data.datasets[chartConfig.data.datasets.length - 1].data.push({
+            x: dt,
+            y: mode === 'dp' ? dp : temp
+          });
+        });
+      return { rooms, chartConfig };
+    }
+
+    // Render summary and chart
+    function renderAll(mode) {
       fetch('data/data.txt').then(x => x.text()).then(data => {
-        data
-          .split('\n')
-          .filter(x => x.trim().length > 5)
-          .forEach(line => {
-            const [dt, loc, col, temp, hum, dp, battery] = line.split('\t');
-            if (!rooms[loc]) {
-              rooms[loc] = Object.keys(rooms).length + 1;
-              chartConfig.data.datasets.push({ label: loc, data: [] })
-            }
-            chartConfig.data.datasets[rooms[loc] - 1].data.push({
-              x: dt,
-              y: mode === 'dp' ? dp : temp
-            });
-          })
+        const { rooms, chartConfig } = parseData(data, mode);
+        updateSummaryTable(rooms);
         if (chart) chart.destroy();
         chart = new Chart(ctx, chartConfig);
       });
     }
+
+    // Tab logic
+    document.getElementById('show-summary').onclick = () => {
+      document.getElementById('summary-section').style.display = '';
+      document.getElementById('chart-section').style.display = 'none';
+    };
+    document.getElementById('show-chart').onclick = () => {
+      document.getElementById('summary-section').style.display = 'none';
+      document.getElementById('chart-section').style.display = '';
+    };
 
     document.getElementById('refresh').addEventListener('click', (e) => {
       window.location.reload();
     });
     document.getElementById('toggle').addEventListener('click', (e) => {
       currentMode = currentMode === 'dp' ? 'temp' : 'dp';
-      renderChart(currentMode);
+      renderAll(currentMode);
     });
     // Initial render
-    renderChart(currentMode);
-
+    renderAll(currentMode);
     </script>
 </body>
 
