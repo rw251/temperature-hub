@@ -91,8 +91,17 @@
       const tbody = document.getElementById('summary-table').querySelector('tbody');
       tbody.innerHTML = '';
       Object.entries(roomData).forEach(([room, {id, data:arr}]) => {
-        const latest = arr[arr.length - 1];
-        const prev = arr.length > 1 ? arr[arr.length - 2] : latest;
+        // Collapse to one reading per minute (keep latest)
+        const perMinute = {};
+        arr.forEach(d => {
+          // Round to minute (UTC)
+          const minuteKey = new Date(d.dt + 'Z').toISOString().slice(0,16); // e.g. "2024-07-10T13:42"
+          perMinute[minuteKey] = d; // overwrite, so latest stays
+        });
+        const arrPerMinute = Object.values(perMinute).sort((a, b) => new Date(a.dt) - new Date(b.dt));
+        
+        const latest = arrPerMinute[arrPerMinute.length - 1];
+        const prev = arrPerMinute.length > 1 ? arrPerMinute[arrPerMinute.length - 2] : latest;
         const trend = latest.temp > prev.temp ? '↑ Rising' : (latest.temp < prev.temp ? '↓ Falling' : '→ Steady');
         
         // Convert UTC time to local time string
@@ -101,7 +110,7 @@
         // Get last 3 hours of data
         const now = Date.now();
         const threeHoursAgo = now - 3 * 60 * 60 * 1000;
-        const sparkData = arr
+        const sparkData = arrPerMinute
           .filter(d => (new Date(d.dt + 'Z')).getTime() >= threeHoursAgo)
           .map(d => d.temp);
 
@@ -113,19 +122,9 @@
           <td>${latest.temp}</td>
           <td>${trend}</td>
           <td>${localTime}</td>
-          <td><div id="${sparkId}" data-sparkline="true" data-points="14,19,7,9,18,20,17"></div></td>
+          <td><div id="${sparkId}" data-sparkline="true" data-points="${sparkData.join(",")}"></div></td>
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', row);
-
-        // Draw sparkline after row is inserted
-        setTimeout(() => {
-          const spark = document.getElementById(sparkId);
-          spark.dataset.points = sparkData.join(',');
-          spark.dispatchEvent(new Event('update')); 
-          // if (spark && sparkData.length > 1) {
-          //   Sparkline.draw(spark, sparkData, { lineColor: '#4caf50', startColor: '#4caf50' });
-          // }
-        }, 0);
       });
     }
 
@@ -240,7 +239,6 @@
     // Initial render
     renderAll(currentMode);
   </script>
-  <script src="https://cdn.jsdelivr.net/gh/mitjafelicijan/sparklines/sparklines.js" defer></script>
 </body>
 
 </html>
