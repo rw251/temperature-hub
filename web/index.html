@@ -61,6 +61,89 @@
       fill: red;
       stroke: red;
     }
+
+    #summary-section {
+      margin: 2rem auto;
+      max-width: 900px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      padding: 2rem 2rem 1rem 2rem;
+    }
+
+    #summary-section h2 {
+      margin-top: 0;
+      font-size: 2rem;
+      color: #333;
+      letter-spacing: 1px;
+    }
+
+    #summary-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #f8f9fa;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      margin-bottom: 1rem;
+    }
+
+    #summary-table thead {
+      background: #4caf50;
+      color: #fff;
+    }
+
+    #summary-table th, #summary-table td {
+      padding: 0.75rem 1rem;
+      text-align: center;
+      font-size: 1.1rem;
+    }
+
+    #summary-table th {
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    #summary-table tbody tr {
+      transition: background 0.2s;
+    }
+
+    #summary-table tbody tr:hover {
+      background: #e8f5e9;
+    }
+
+    #summary-table td.sparkline-cell {
+      background: #fff;
+      padding: 0.5rem 0.25rem;
+    }
+
+    #summary-table td {
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    #summary-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    button {
+      background-color: #4caf50;
+      font-size: 1.1rem;
+      border: none;
+      color: white;
+      padding: 8px 18px;
+      border-radius: 6px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      margin: 8px 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #388e3c;
+    }
   </style>
 </head>
 
@@ -161,6 +244,8 @@
         // Calculate trend state using last 3 hours of data
         // Calculate trend state using last 3 hours of data
         let trend = '→ Steady';
+        let stroke = '#888';
+        let fill = '#eee';
         if (filtered.length >= 3) {
           const last = filtered[filtered.length - 1].temp;
           const prev = filtered[filtered.length - 2].temp;
@@ -179,6 +264,8 @@
             delta > threshold
           ) {
             trend = '↗ Inflected Low';
+            stroke = '#ff9800'; // orange
+            fill = '#ffe0b2';
           }
           // Inflected High: max is at prev, and now falling
           else if (
@@ -186,12 +273,18 @@
             delta < -threshold
           ) {
             trend = '↘ Inflected High';
+            stroke = '#03a9f4'; // light blue
+            fill = '#b3e5fc';
           }
           else if (delta > threshold) {
             trend = '↑ Rising';
+            stroke = '#e53935'; // red
+            fill = '#ffcdd2';
           }
           else if (delta < -threshold) {
             trend = '↓ Falling';
+            stroke = '#1e88e5'; // blue
+            fill = '#bbdefb';
           }
           else {
             trend = '→ Steady';
@@ -203,8 +296,12 @@
           const threshold = 0.05;
           if (delta > threshold) {
             trend = '↑ Rising';
+            stroke = '#e53935';
+            fill = '#ffcdd2';
           } else if (delta < -threshold) {
             trend = '↓ Falling';
+            stroke = '#1e88e5';
+            fill = '#bbdefb';
           } else {
             trend = '→ Steady';
           }
@@ -219,7 +316,7 @@
           <td>${firstTemp} (${firstTime})</td>
           <td>${latest.temp} (${localTime})</td>
           <td class="sparkline-cell">
-            <svg class="spark-${room}" width="100" height="20" stroke-width="2" stroke="blue" fill="rgba(0, 0, 255, .2)"></svg>
+            <svg class="spark-${room}" width="100" height="20" stroke-width="2" stroke="${stroke}" fill="${fill}"></svg>
             <span class="tooltip" hidden="true"></span>
           </td>
           <td>${trend}</td>
