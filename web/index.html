@@ -51,6 +51,8 @@
           <th>Room</th>
           <th>Temperature (°C)</th>
           <th>Trend</th>
+          <th>Time</th>
+          <th>Last 3h</th>
         </tr>
       </thead>
       <tbody>
@@ -60,7 +62,7 @@
   </div>
 
   <!-- Chart Section (hidden by default) -->
-    <div id="chart-section" style="display:none;">
+  <div id="chart-section" style="display:none;">
     <canvas id="myChart"></canvas>
     <div id="footer">
       <button id="refresh">Refresh</button>
@@ -79,6 +81,7 @@
     src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sparkline@0.0.6/build/sparkline.js"></script>
   <script type="text/javascript">
     let currentMode = 'dp';
     let chart;
@@ -92,12 +95,36 @@
         const latest = arr[arr.length - 1];
         const prev = arr.length > 1 ? arr[arr.length - 2] : latest;
         const trend = latest.temp > prev.temp ? '↑ Rising' : (latest.temp < prev.temp ? '↓ Falling' : '→ Steady');
+        
+        // Convert UTC time to local time string
+        const localTime = new Date(latest.dt + 'Z').toLocaleString();
+
+        // Get last 3 hours of data
+        const now = Date.now();
+        const threeHoursAgo = now - 3 * 60 * 60 * 1000;
+        const sparkData = arr
+          .filter(d => (new Date(d.dt + 'Z')).getTime() >= threeHoursAgo)
+          .map(d => d.temp);
+
+        // Generate a unique id for the sparkline canvas
+        const sparkId = `spark-${room.replace(/\s+/g, '-')}`;
+
         const row = `<tr>
           <td>${room}</td>
           <td>${latest.temp}</td>
           <td>${trend}</td>
+          <td>${localTime}</td>
+          <td><canvas id="${sparkId}" width="60" height="20"></canvas></td>
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', row);
+
+        // Draw sparkline after row is inserted
+        setTimeout(() => {
+          const canvas = document.getElementById(sparkId);
+          if (canvas && sparkData.length > 1) {
+            Sparkline.draw(canvas, sparkData, { lineColor: '#4caf50', startColor: '#4caf50' });
+          }
+        }, 0);
       });
     }
 
