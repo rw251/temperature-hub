@@ -158,13 +158,13 @@
           });
 
         // Calculate trend state using last 3 hours of data
+        // Calculate trend state using last 3 hours of data
         let trend = '→ Steady';
-        if (filtered.length >= 2) {
-          const first = filtered[0].temp;
+        if (filtered.length >= 3) {
           const last = filtered[filtered.length - 1].temp;
           const prev = filtered[filtered.length - 2].temp;
-          const delta = last - first;
-          const prevDelta = last - prev;
+          const prev2 = filtered[filtered.length - 3].temp;
+          const delta = last - prev;
           const threshold = 0.05; // Ignore changes smaller than this
 
           // Find local min/max in the last 3 hours
@@ -172,22 +172,38 @@
           const minIdx = temps.indexOf(minTemp);
           const maxIdx = temps.indexOf(maxTemp);
 
-          if (Math.abs(prevDelta) < threshold && Math.abs(delta) < threshold) {
+          // Inflected Low: min is at prev, and now rising
+          if (
+            minIdx === filtered.length - 2 &&
+            delta > threshold
+          ) {
+            trend = '↗ Inflected Low';
+          }
+          // Inflected High: max is at prev, and now falling
+          else if (
+            maxIdx === filtered.length - 2 &&
+            delta < -threshold
+          ) {
+            trend = '↘ Inflected High';
+          }
+          else if (delta > threshold) {
+            trend = '↑ Rising';
+          }
+          else if (delta < -threshold) {
+            trend = '↓ Falling';
+          }
+          else {
             trend = '→ Steady';
-          } else if (
-            minIdx > 0 && minIdx < filtered.length - 1 &&
-            last > prev && Math.abs(last - minTemp) < threshold
-          ) {
-            trend = '↘↗ Inflected Low';
-          } else if (
-            maxIdx > 0 && maxIdx < filtered.length - 1 &&
-            last < prev && Math.abs(last - maxTemp) < threshold
-          ) {
-            trend = '↗↘ Inflected High';
-          } else if (delta > threshold) {
-            trend = '↗↑ Rising';
+          }
+        } else if (filtered.length >= 2) {
+          const last = filtered[filtered.length - 1].temp;
+          const prev = filtered[filtered.length - 2].temp;
+          const delta = last - prev;
+          const threshold = 0.05;
+          if (delta > threshold) {
+            trend = '↑ Rising';
           } else if (delta < -threshold) {
-            trend = '↘↓ Falling';
+            trend = '↓ Falling';
           } else {
             trend = '→ Steady';
           }
