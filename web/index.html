@@ -39,6 +39,9 @@
       display: block;
     }
 
+    td.sparkline-cell {
+      position: relative;
+    }
     .tooltip {
       position: absolute;
       background: rgba(0, 0, 0, .7);
@@ -47,6 +50,7 @@
       font-size: 12px;
       white-space: nowrap;
       z-index: 9999;
+      pointer-events: none;
     }
 
     .sparkline--cursor {
@@ -163,7 +167,7 @@
           <td>${latest.temp}</td>
           <td>${trend}</td>
           <td>${localTime}</td>
-          <td>
+          <td class="sparkline-cell">
             <svg class="spark-${room}" width="100" height="20" stroke-width="2" stroke="blue" fill="rgba(0, 0, 255, .2)"></svg>
             <span class="tooltip" hidden="true"></span>
           </td>
