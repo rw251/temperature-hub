@@ -170,11 +170,10 @@
         .forEach(line => {
           const [dt, loc, col, temp, hum, dp, battery] = line.split('\t');
           if (!rooms[loc]) {
-            rooms[loc] = [];
+            rooms[loc] = Object.keys(rooms).length + 1;
             chartConfig.data.datasets.push({ label: loc, data: [] });
           }
-          rooms[loc].push({ dt, temp: parseFloat(temp), dp: parseFloat(dp) });
-          chartConfig.data.datasets[chartConfig.data.datasets.length - 1].data.push({
+          chartConfig.data.datasets[rooms[loc] - 1].data.push({
             x: dt,
             y: mode === 'dp' ? dp : temp
           });
