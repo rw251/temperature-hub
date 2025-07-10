@@ -81,7 +81,7 @@
     src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sparkline@0.0.6/build/sparkline.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/mitjafelicijan/sparklines/sparklines.js"></script>
   <script type="text/javascript">
     let currentMode = 'dp';
     let chart;
@@ -114,16 +114,18 @@
           <td>${latest.temp}</td>
           <td>${trend}</td>
           <td>${localTime}</td>
-          <td><canvas id="${sparkId}" width="60" height="20"></canvas></td>
+          <td><div id="${sparkId}" data-sparkline="true" data-points="14,19,7,9,18,20,17"></div></td>
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', row);
 
         // Draw sparkline after row is inserted
         setTimeout(() => {
-          const canvas = document.getElementById(sparkId);
-          if (canvas && sparkData.length > 1) {
-            Sparkline.draw(canvas, sparkData, { lineColor: '#4caf50', startColor: '#4caf50' });
-          }
+          const spark = document.getElementById(sparkId);
+          spark.dataset.points = sparkData.join(',');
+          spark.dispatchEvent(new Event('update')); 
+          // if (spark && sparkData.length > 1) {
+          //   Sparkline.draw(spark, sparkData, { lineColor: '#4caf50', startColor: '#4caf50' });
+          // }
         }, 0);
       });
     }
