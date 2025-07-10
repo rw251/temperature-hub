@@ -144,10 +144,14 @@
         // Get last 3 hours of data
         const now = Date.now();
         const threeHoursAgo = now - 3 * 60 * 60 * 1000;
-        const sparkData = arrPerMinute
-          .filter(d => (new Date(d.dt + 'Z')).getTime() >= threeHoursAgo)
+        const filtered = arrPerMinute
+          .filter(d => (new Date(d.dt + 'Z')).getTime() >= threeHoursAgo);
+
+        const minTemp = Math.min(...filtered.map(d => d.temp));
+        const maxTemp = Math.max(...filtered.map(d => d.temp));
+        const sparkData = filtered
           .map(d => {
-            return {name:room, date: d.dt, value: d.temp};
+            return {name:room, date: d.dt, value: d.temp - minTemp + 0.1, actualValue:d.temp};
           });
         
 
@@ -170,11 +174,11 @@
           onmousemove(event, datapoint) {
             var svg = findClosest(event.target, "svg");
             var tooltip = svg.nextElementSibling;
-            var date = (new Date(datapoint.date)).toUTCString().replace(/^.*?, (.*?) \d{2}:\d{2}:\d{2}.*?$/, "$1");
+            var date = (new Date(datapoint.date)).toISOString().substring(11, 16); // HH:mm format
 
 
             tooltip.hidden = false;
-            tooltip.textContent = `${date}: $${datapoint.value.toFixed(2)} USD`;
+            tooltip.textContent = `${date}: ${datapoint.actualValue.toFixed(2)}°C`;
             tooltip.style.top = `${event.offsetY}px`;
             tooltip.style.left = `${event.offsetX + 20}px`;
           },
