@@ -143,8 +143,7 @@
         const trend = latest.temp > prev.temp ? '↑ Rising' : (latest.temp < prev.temp ? '↓ Falling' : '→ Steady');
         
         // Convert UTC time to local time string
-        const localTime = new Date(latest.dt + 'Z').toLocaleString();
-
+        const localTime = new Date(latest.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         // Get last 3 hours of data
         const now = Date.now();
         const threeHoursAgo = now - 3 * 60 * 60 * 1000;
