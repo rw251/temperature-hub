@@ -174,7 +174,7 @@
             chartConfig.data.datasets.push({ label: loc, data: [] });
           }
           rooms[loc].data.push({ dt, temp: parseFloat(temp), dp: parseFloat(dp) });
-          chartConfig.data.datasets[rooms[loc].id].data.push({
+          chartConfig.data.datasets[rooms[loc].id - 1].data.push({
             x: dt,
             y: mode === 'dp' ? dp : temp
           });
