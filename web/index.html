@@ -372,7 +372,7 @@
           onmousemove(event, datapoint) {
             var svg = findClosest(event.target, "svg");
             var tooltip = svg.nextElementSibling;
-            var date = (new Date(datapoint.date)).toISOString().substring(11, 16); // HH:mm format
+            var date = (new Date(datapoint.date + 'Z')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 
             tooltip.hidden = false;
