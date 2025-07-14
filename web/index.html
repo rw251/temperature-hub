@@ -281,7 +281,7 @@
         const sparklineData = arrPerMinute
           .filter(d => (new Date(d.dt + 'Z')).getTime() >= sixHoursAgo);
 
-        const first = filtered[0];
+        const first = sparklineData[0];
         const firstTemp = first ? first.temp : '';
         const firstTime = first ? new Date(first.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         
