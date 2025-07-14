@@ -249,6 +249,21 @@
       return target;
     }
 
+    // Helper function to format time difference
+    function formatTimeAgo(timestamp) {
+      const now = Date.now();
+      const diffMs = now - new Date(timestamp + 'Z').getTime(); // Difference in milliseconds
+      const diffMinutes = Math.floor(diffMs / (1000 * 60)); // Difference in minutes
+
+      if (diffMinutes < 60) {
+        return `-${String(diffMinutes).padStart(2, '0')}m`; // Less than 60 minutes, zero-padded
+      } else {
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        return `-${hours}:${String(minutes).padStart(2, '0')}`; // More than 1 hour, hours not zero-padded
+      }
+    }
+
     let currentMode = 'dp';
     let chart;
     const ctx = document.getElementById('myChart');
@@ -268,8 +283,7 @@
         const arrPerMinute = Object.values(perMinute).sort((a, b) => new Date(a.dt) - new Date(b.dt));
         
         const latest = arrPerMinute[arrPerMinute.length - 1];
-        // Convert UTC time to local time string
-        const localTime = new Date(latest.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const latestAgo = latest ? formatTimeAgo(latest.dt) : '';
         // Get last 3.5 hours of data
         const now = Date.now();
         const threeHoursAgo = now - 3.5 * 60 * 60 * 1000;
@@ -283,7 +297,7 @@
 
         const first = sparklineData[0];
         const firstTemp = first ? first.temp : '';
-        const firstTime = first ? new Date(first.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const firstAgo = first ? formatTimeAgo(first.dt) : '';
         
         // Find min/max for sparkline data (6 hours)
         const minTemp = Math.min(...sparklineData.map(d => d.temp));
@@ -364,8 +378,8 @@
 
         const row = `<tr>
           <td>${room}</td>
-          <td>${firstTemp} (${firstTime})</td>
-          <td>${latest.temp} (${localTime})</td>
+          <td>${firstTemp} (${firstAgo})</td>
+          <td>${latest.temp} (${latestAgo})</td>
           <td class="sparkline-cell">
             <svg class="spark-${room}" width="100" height="20" stroke-width="2" stroke="${stroke}" fill="${fill}"></svg>
             <span class="tooltip" hidden="true"></span>
