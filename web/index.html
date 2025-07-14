@@ -288,7 +288,7 @@
         // Find min/max for sparkline data (6 hours)
         const minTemp = Math.min(...sparklineData.map(d => d.temp));
         const maxTemp = Math.max(...sparklineData.map(d => d.temp));
-        const sparkData = filtered
+        const sparkData = sparklineData
           .map(d => {
             return {name:room, date: d.dt, value: d.temp - minTemp + 0.1, actualValue:d.temp};
           });
