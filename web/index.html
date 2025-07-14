@@ -4,31 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
     }
 
-    body {
-      height: 90%;
-      font-size: 16px;
-    }
-
-    button {
-      background-color: #4caf50;
-      font-size: 20 px;
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      margin: 4px 2px;
-      cursor: pointer;
-    }
     #chart-section {
       height: 80vh;
       max-width: 100%;
@@ -63,30 +46,26 @@
     }
 
     #summary-section {
-      margin: 2rem auto;
-      max-width: 900px;
+      margin: 0.5rem;
+      padding: 1rem;
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-      padding: 2rem 2rem 1rem 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
 
     #summary-section h2 {
       margin-top: 0;
-      font-size: 2rem;
+      font-size: 1.5rem;
       color: #333;
-      letter-spacing: 1px;
     }
 
     #summary-table {
       width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
+      border-collapse: collapse;
       background: #f8f9fa;
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-      margin-bottom: 1rem;
+      font-size: 0.9rem;
     }
 
     #summary-table thead {
@@ -95,14 +74,12 @@
     }
 
     #summary-table th, #summary-table td {
-      padding: 0.75rem 1rem;
+      padding: 0.5rem 0.3rem;
       text-align: center;
-      font-size: 1.1rem;
     }
 
     #summary-table th {
       font-weight: 600;
-      letter-spacing: 0.5px;
     }
 
     #summary-table tbody tr {
@@ -114,8 +91,8 @@
     }
 
     #summary-table td.sparkline-cell {
-      background: #fff;
-      padding: 0.5rem 0.25rem;
+      width: 30%;
+      padding: 0.5rem 0;
     }
 
     #summary-table td {
@@ -128,21 +105,88 @@
 
     button {
       background-color: #4caf50;
-      font-size: 1.1rem;
+      font-size: 0.9rem;
       border: none;
       color: white;
-      padding: 8px 18px;
-      border-radius: 6px;
+      padding: 6px 12px;
+      border-radius: 4px;
       text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      margin: 8px 4px;
+      margin: 4px 2px;
       cursor: pointer;
-      transition: background 0.2s;
     }
 
     button:hover {
       background-color: #388e3c;
+    }
+
+    /* Chart section for small screens */
+    #chart-section {
+      height: calc(100vh - 60px);
+      width: 100%;
+    }
+
+    #myChart {
+      height: 100% !important;
+      width: 100% !important;
+    }
+
+    /* Tab buttons container */
+    .tab-buttons {
+      padding: 0.5rem;
+      background-color: #f8f9fa;
+      position: sticky;
+      bottom: 0;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* Tooltip styling */
+    .tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, .8);
+      color: #fff;
+      padding: 2px 5px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 9999;
+      pointer-events: none;
+      border-radius: 3px;
+    }
+
+    /* Table adjustments for small screens */
+    @media (max-width: 480px) {
+      #summary-table th, #summary-table td {
+        padding: 0.4rem 0.2rem;
+        font-size: 0.8rem;
+      }
+      
+      /* Simplify temperature display on small screens */
+      td:nth-child(2), td:nth-child(3) {
+        white-space: nowrap;
+      }
+    }
+
+    /* Medium screens */
+    @media (min-width: 768px) {
+      #summary-section {
+        margin: 1rem auto;
+        max-width: 90%;
+        padding: 1.5rem;
+      }
+      
+      #summary-table th, #summary-table td {
+        padding: 0.6rem 0.5rem;
+        font-size: 1rem;
+      }
+    }
+
+    /* Large screens */
+    @media (min-width: 1024px) {
+      #summary-section {
+        max-width: 900px;
+        padding: 2rem;
+      }
     }
   </style>
 </head>
