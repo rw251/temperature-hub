@@ -203,7 +203,7 @@
           <th>Room</th>
           <th>Was</th>
           <th>Now</th>
-          <th>Last 3h</th>
+          <th>Last 6h</th>
           <th>Trend</th>
         </tr>
       </thead>
@@ -273,20 +273,26 @@
         // Get last 3.5 hours of data
         const now = Date.now();
         const threeHoursAgo = now - 3.5 * 60 * 60 * 1000;
+        const sixHoursAgo = now - 6.5 * 60 * 60 * 1000;  // New variable for 6 hours
         const filtered = arrPerMinute
           .filter(d => (new Date(d.dt + 'Z')).getTime() >= threeHoursAgo);
+
+        // Filter data for sparkline (6 hours)
+        const sparklineData = arrPerMinute
+          .filter(d => (new Date(d.dt + 'Z')).getTime() >= sixHoursAgo);
+
         const first = filtered[0];
         const firstTemp = first ? first.temp : '';
         const firstTime = first ? new Date(first.dt + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         
-        const minTemp = Math.min(...filtered.map(d => d.temp));
-        const maxTemp = Math.max(...filtered.map(d => d.temp));
+        // Find min/max for sparkline data (6 hours)
+        const minTemp = Math.min(...sparklineData.map(d => d.temp));
+        const maxTemp = Math.max(...sparklineData.map(d => d.temp));
         const sparkData = filtered
           .map(d => {
             return {name:room, date: d.dt, value: d.temp - minTemp + 0.1, actualValue:d.temp};
           });
 
-        // Calculate trend state using last 3 hours of data
         // Calculate trend state using last 3 hours of data
         let trend = '→ Steady';
         let stroke = '#888';
