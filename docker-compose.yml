@@ -1,6 +1,7 @@
 services:
   python-mqtt:
     container_name: temperature-hub-mqtt
+    restart: unless-stopped
     build:
       context: .
       dockerfile: python-mqtt.Dockerfile
@@ -32,6 +33,7 @@ services:
 
   webserver:
     container_name: temperature-hub-webserver
+    restart: unless-stopped
     build:
       context: .
       dockerfile: webserver.Dockerfile
