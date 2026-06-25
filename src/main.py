@@ -57,6 +57,22 @@ def update_index(segment_name):
     tmp_path.replace(index_file)
 
 
+def segment_name_from_legacy_line(line):
+    if "\0" in line:
+        return None
+
+    timestamp = line.split("\t", 1)[0]
+    if len(timestamp) < 10:
+        return None
+
+    try:
+        reading_date = datetime.strptime(timestamp[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+    return f"{reading_date.isoformat()}.tsv"
+
+
 def migrate_legacy_data_file():
     if not legacy_data_file.exists():
         return
@@ -67,13 +83,16 @@ def migrate_legacy_data_file():
     migrated_count = 0
 
     with open(legacy_data_file) as legacy:
+        skipped_count = 0
         for line in legacy:
             if len(line.strip()) <= 5:
                 continue
-            timestamp = line.split("\t", 1)[0]
-            if len(timestamp) < 10:
+
+            segment_name = segment_name_from_legacy_line(line)
+            if not segment_name:
+                skipped_count += 1
                 continue
-            segment_name = f"{timestamp[:10]}.tsv"
+
             segment_path = segments_dir / segment_name
             if segment_name not in existing_lines_by_segment:
                 if segment_path.exists():
@@ -94,6 +113,8 @@ def migrate_legacy_data_file():
     update_index_from_disk()
     if migrated_count:
         logging.info(f"Synced {migrated_count} legacy readings into daily segments")
+    if skipped_count:
+        logging.warning(f"Skipped {skipped_count} malformed legacy readings")
 
 
 def update_index_from_disk():
