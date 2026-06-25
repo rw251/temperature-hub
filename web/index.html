@@ -1,525 +1,807 @@
-<html>
+<!doctype html>
+<html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Temperature Hub</title>
+  <link rel="icon" href="data:,">
   <style>
-    html, body {
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --ink: #1f2933;
+      --muted: #637083;
+      --line: #d9e0e8;
+      --green: #2f8f5b;
+      --green-dark: #1f6f44;
+      --blue: #2563eb;
+      --red: #d64545;
+      --amber: #b7791f;
+      --shadow: 0 8px 26px rgba(22, 34, 51, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
       margin: 0;
-      padding: 0;
-      width: 100%;
+      min-height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
     }
 
-    html {
-      height: 100%;
+    body {
+      padding: 18px;
     }
 
-    #chart-section {
-      height: 80vh;
-      max-width: 100%;
-    }
-    #myChart {
-      height: 100% !important;
-      width: 100% !important;
-      display: block;
-    }
-
-    td.sparkline-cell {
-      position: relative;
-    }
-    .tooltip {
-      position: absolute;
-      background: rgba(0, 0, 0, .7);
-      color: #fff;
-      padding: 2px 5px;
-      font-size: 12px;
-      white-space: nowrap;
-      z-index: 9999;
-      pointer-events: none;
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1180px;
+      margin: 0 auto 14px;
     }
 
-    .sparkline--cursor {
-      stroke: orange;
+    h1 {
+      margin: 0;
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: 0;
     }
 
-    .sparkline--spot {
-      fill: red;
-      stroke: red;
+    .last-updated {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.92rem;
     }
 
-    #summary-section {
-      margin: 0.5rem;
-      padding: 1rem;
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .toolbar-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 2px 10px rgba(22, 34, 51, 0.04);
+    }
+
+    button,
+    select {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
       background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    #summary-section h2 {
-      margin-top: 0;
-      font-size: 1.5rem;
-      color: #333;
-    }
-
-    #summary-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #f8f9fa;
-      border-radius: 8px;
-      overflow: hidden;
-      font-size: 0.9rem;
-    }
-
-    #summary-table thead {
-      background: #4caf50;
-      color: #fff;
-    }
-
-    #summary-table th, #summary-table td {
-      padding: 0.5rem 0.3rem;
-      text-align: center;
-    }
-
-    #summary-table th {
-      font-weight: 600;
-    }
-
-    #summary-table tbody tr {
-      transition: background 0.2s;
-    }
-
-    #summary-table tbody tr:hover {
-      background: #e8f5e9;
-    }
-
-    #summary-table td.sparkline-cell {
-      width: 30%;
-      padding: 0.5rem 0;
-    }
-
-    #summary-table td {
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    #summary-table tr:last-child td {
-      border-bottom: none;
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.92rem;
     }
 
     button {
-      background-color: #4caf50;
-      font-size: 0.9rem;
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 4px;
-      text-align: center;
-      margin: 4px 2px;
+      padding: 0 11px;
       cursor: pointer;
     }
 
-    button:hover {
-      background-color: #388e3c;
+    select {
+      padding: 0 28px 0 10px;
     }
 
-    /* Chart section for small screens */
-    #chart-section {
-      height: calc(100vh - 60px);
+    button:hover,
+    select:hover {
+      border-color: #aab6c3;
+    }
+
+    button.active {
+      border-color: var(--green);
+      background: var(--green);
+      color: #fff;
+    }
+
+    button.icon {
+      width: 36px;
+      padding: 0;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: 14px;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .summary {
+      overflow: hidden;
+    }
+
+    .room-list {
       width: 100%;
+      border-collapse: collapse;
+    }
+
+    .room-list th,
+    .room-list td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .room-list th {
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .room-list tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .room-row {
+      cursor: pointer;
+    }
+
+    .room-row:hover {
+      background: #f8fafc;
+    }
+
+    .room-row.active {
+      background: #edf7f1;
+    }
+
+    .room-name {
+      display: block;
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+
+    .device-name,
+    .reading-meta {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .temp-now {
+      font-size: 1.3rem;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .trend {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 78px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .trend.rising {
+      color: #8f2424;
+      background: #fde8e8;
+    }
+
+    .trend.falling {
+      color: #164e9a;
+      background: #e5efff;
+    }
+
+    .trend.steady {
+      color: #4b5563;
+      background: #edf0f3;
+    }
+
+    .trend.high,
+    .trend.low {
+      color: #8a570f;
+      background: #fff4d6;
+    }
+
+    .sparkline-cell {
+      position: relative;
+      width: 108px;
+    }
+
+    .sparkline-cell svg {
+      display: block;
+      width: 96px;
+      height: 30px;
+    }
+
+    .tooltip {
+      position: absolute;
+      z-index: 5;
+      pointer-events: none;
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: rgba(20, 30, 45, 0.9);
+      color: #fff;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .chart-panel {
+      min-height: calc(100vh - 92px);
+      display: grid;
+      grid-template-rows: auto minmax(320px, 1fr);
+    }
+
+    .detail-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      border-bottom: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 13px 14px;
+      background: #fff;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      margin-top: 3px;
+      font-size: 1.05rem;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .chart-wrap {
+      min-height: 0;
+      padding: 12px;
     }
 
     #myChart {
-      height: 100% !important;
       width: 100% !important;
+      height: 100% !important;
+      display: block;
     }
 
-    /* Tab buttons container */
-    .tab-buttons {
-      padding: 0.5rem;
-      background-color: #f8f9fa;
-      position: sticky;
-      bottom: 0;
+    .empty-state {
+      padding: 22px;
+      color: var(--muted);
       text-align: center;
-      box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
     }
 
-    /* Tooltip styling */
-    .tooltip {
-      position: absolute;
-      background: rgba(0, 0, 0, .8);
-      color: #fff;
-      padding: 2px 5px;
-      font-size: 12px;
-      white-space: nowrap;
-      z-index: 9999;
-      pointer-events: none;
-      border-radius: 3px;
-    }
+    @media (max-width: 900px) {
+      body {
+        padding: 10px;
+      }
 
-    /* Table adjustments for small screens */
-    @media (max-width: 480px) {
-      #summary-table th, #summary-table td {
-        padding: 0.4rem 0.2rem;
-        font-size: 0.8rem;
+      header,
+      main {
+        max-width: none;
       }
-      
-      /* Simplify temperature display on small screens */
-      td:nth-child(2), td:nth-child(3) {
-        white-space: nowrap;
-      }
-    }
 
-    /* Medium screens */
-    @media (min-width: 768px) {
-      #summary-section {
-        margin: 1rem auto;
-        max-width: 90%;
-        padding: 1.5rem;
+      header {
+        display: block;
       }
-      
-      #summary-table th, #summary-table td {
-        padding: 0.6rem 0.5rem;
-        font-size: 1rem;
+
+      .toolbar {
+        justify-content: flex-start;
+        margin-top: 12px;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-panel {
+        min-height: 62vh;
       }
     }
 
-    /* Large screens */
-    @media (min-width: 1024px) {
-      #summary-section {
-        max-width: 900px;
-        padding: 2rem;
+    @media (max-width: 560px) {
+      .room-list th:nth-child(3),
+      .room-list td:nth-child(3) {
+        display: none;
+      }
+
+      .detail-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .toolbar-group {
+        width: 100%;
+      }
+
+      .toolbar-group select {
+        flex: 1;
+        min-width: 0;
       }
     }
   </style>
 </head>
 
 <body>
-  <!-- Summary Table -->
-  <div id="summary-section">
-    <h2>Current Room Temperatures</h2>
-    <table id="summary-table">
-      <thead>
-        <tr>
-          <th>Room</th>
-          <th>Was</th>
-          <th>Now</th>
-          <th>Last 6h</th>
-          <th>Trend</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Filled by JS -->
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Chart Section (hidden by default) -->
-  <div id="chart-section" style="display:none;">
-    <canvas id="myChart"></canvas>
-    <div id="footer">
-      <button id="refresh">Refresh</button>
-      <button id="toggle">Toggle</button>
+  <header>
+    <div>
+      <h1>Temperature Hub</h1>
+      <div id="last-updated" class="last-updated">Loading readings...</div>
     </div>
-  </div>
+    <div class="toolbar" aria-label="Chart controls">
+      <div class="toolbar-group" id="range-controls" aria-label="Time window">
+        <button type="button" data-range-hours="6">6h</button>
+        <button type="button" data-range-hours="24" class="active">24h</button>
+        <button type="button" data-range-hours="72">3d</button>
+        <button type="button" data-range-hours="168">7d</button>
+        <button type="button" data-range-hours="0">All</button>
+      </div>
+      <div class="toolbar-group">
+        <select id="room-select" aria-label="Sensor">
+          <option value="all">All sensors</option>
+        </select>
+        <select id="mode-select" aria-label="Measure">
+          <option value="temp">Temperature</option>
+          <option value="dp">Dew point</option>
+          <option value="humidity">Humidity</option>
+        </select>
+        <button type="button" id="reset-zoom" class="icon" title="Reset zoom">↺</button>
+        <button type="button" id="refresh" class="icon" title="Refresh">⟳</button>
+      </div>
+    </div>
+  </header>
 
-  <!-- Tab Buttons -->
-  <div class="tab-buttons">
-    <button id="show-summary">Summary</button>
-    <button id="show-chart">Chart</button>
-  </div>
+  <main>
+    <section class="panel summary" aria-label="Current readings">
+      <table class="room-list">
+        <thead>
+          <tr>
+            <th>Room</th>
+            <th>Now</th>
+            <th>Window</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody id="room-summary"></tbody>
+      </table>
+    </section>
+
+    <section class="panel chart-panel" aria-label="Sensor chart">
+      <div class="detail-strip">
+        <div class="metric">
+          <div class="metric-label">Selected</div>
+          <div class="metric-value" id="metric-selected">All sensors</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Latest</div>
+          <div class="metric-value" id="metric-latest">-</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Min / Max</div>
+          <div class="metric-value" id="metric-range">-</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Readings</div>
+          <div class="metric-value" id="metric-count">-</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="myChart"></canvas>
+      </div>
+    </section>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.1/dist/chart.umd.min.js"></script>
-  <script
-    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
-  <script src="https://cdn.rawgit.com/fnando/sparkline/master/dist/sparkline.js"></script>
-  <script type="text/javascript">
-    function findClosest(target, tagName) {
-      if (target.tagName === tagName) {
-        return target;
-      }
-
-      while ((target = target.parentNode)) {
-        if (target.tagName === tagName) {
-          break;
-        }
-      }
-
-      return target;
-    }
-
-    // Helper function to format time difference
-    function formatTimeAgo(timestamp) {
-      const now = Date.now();
-      const diffMs = now - new Date(timestamp + 'Z').getTime(); // Difference in milliseconds
-      const diffMinutes = Math.floor(diffMs / (1000 * 60)); // Difference in minutes
-      const hours = Math.floor(diffMinutes / 60);
-      const minutes = diffMinutes % 60;
-
-      return `-${hours}:${String(minutes).padStart(2, '0')}`; // Always show hours and minutes
-    }
-
-    let currentMode = 'dp';
+  <script>
+    const EXPECTED_ROOMS = ['main', 'boys', 'hall', 'loft'];
+    const COLOURS = ['#2563eb', '#d64545', '#2f8f5b', '#b7791f', '#6b46c1', '#0f766e'];
+    const state = {
+      allReadings: [],
+      rangeHours: 24,
+      selectedRoom: 'all',
+      mode: 'temp',
+    };
     let chart;
+
     const ctx = document.getElementById('myChart');
 
-    // Helper to update summary table
-    function updateSummaryTable(roomData) {
-      const tbody = document.getElementById('summary-table').querySelector('tbody');
-      tbody.innerHTML = '';
-      Object.entries(roomData).forEach(([room, {id, data:arr}]) => {
-        // Collapse to one reading per minute (keep latest)
-        const perMinute = {};
-        arr.forEach(d => {
-          // Round to minute (UTC)
-          const minuteKey = new Date(d.dt + 'Z').toISOString().slice(0,16); // e.g. "2024-07-10T13:42"
-          perMinute[minuteKey] = d; // overwrite, so latest stays
+    function asDate(reading) {
+      return new Date(`${reading.dt}Z`);
+    }
+
+    function formatAgo(dt) {
+      if (!dt) return '-';
+      const minutes = Math.max(0, Math.floor((Date.now() - asDate({ dt }).getTime()) / 60000));
+      if (minutes < 1) return 'now';
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 48) return `${hours}h ${minutes % 60}m ago`;
+      return `${Math.floor(hours / 24)}d ago`;
+    }
+
+    function formatNumber(value, suffix = '') {
+      return Number.isFinite(value) ? `${value.toFixed(1)}${suffix}` : '-';
+    }
+
+    function displayRoom(room) {
+      return room.charAt(0).toUpperCase() + room.slice(1);
+    }
+
+    function valueFor(reading) {
+      if (state.mode === 'dp') return reading.dp;
+      if (state.mode === 'humidity') return reading.humidity;
+      return reading.temp;
+    }
+
+    function unit() {
+      return state.mode === 'humidity' ? '%' : '°C';
+    }
+
+    function modeLabel() {
+      if (state.mode === 'dp') return 'Dew point';
+      if (state.mode === 'humidity') return 'Humidity';
+      return 'Temperature';
+    }
+
+    function parseData(raw) {
+      return raw.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 5)
+        .map(line => {
+          const [dt, room, device, temp, humidity, dp, battery] = line.split('\t');
+          return {
+            dt,
+            room,
+            device,
+            temp: parseFloat(temp),
+            humidity: parseFloat(humidity),
+            dp: parseFloat(dp),
+            battery: parseFloat(battery),
+          };
+        })
+        .filter(reading => reading.dt && reading.room && Number.isFinite(reading.temp))
+        .sort((a, b) => asDate(a) - asDate(b));
+    }
+
+    async function fetchText(path) {
+      const response = await fetch(path, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Could not fetch ${path}`);
+      return response.text();
+    }
+
+    function segmentInRange(segmentName) {
+      if (!state.rangeHours) return true;
+      const segmentDate = new Date(`${segmentName.replace('.tsv', '')}T23:59:59Z`);
+      const start = Date.now() - state.rangeHours * 60 * 60 * 1000;
+      return segmentDate.getTime() >= start;
+    }
+
+    async function loadReadings() {
+      try {
+        const indexResponse = await fetch('data/index.json', { cache: 'no-store' });
+        if (!indexResponse.ok) throw new Error('No segment index yet');
+        const index = await indexResponse.json();
+        const segmentNames = (index.segments || []).filter(segmentInRange);
+        const segmentTexts = await Promise.all(
+          segmentNames.map(name => fetchText(`data/segments/${name}`))
+        );
+        return parseData(segmentTexts.join('\n'));
+      } catch (error) {
+        return fetchText('data/data.txt').then(parseData);
+      }
+    }
+
+    function roomsFrom(readings) {
+      return [...new Set([...EXPECTED_ROOMS, ...readings.map(reading => reading.room)])];
+    }
+
+    function readingsInWindow(readings) {
+      if (!state.rangeHours) return readings;
+      const start = Date.now() - state.rangeHours * 60 * 60 * 1000;
+      return readings.filter(reading => asDate(reading).getTime() >= start);
+    }
+
+    function collapsePerMinute(readings) {
+      const perMinute = new Map();
+      readings.forEach(reading => {
+        perMinute.set(asDate(reading).toISOString().slice(0, 16), reading);
+      });
+      return [...perMinute.values()].sort((a, b) => asDate(a) - asDate(b));
+    }
+
+    function trendFor(readings) {
+      const points = collapsePerMinute(readings).slice(-8);
+      if (points.length < 2) return { label: 'No trend', className: 'steady', stroke: '#9aa5b1', fill: '#edf0f3' };
+      const first = points[0].temp;
+      const last = points[points.length - 1].temp;
+      const delta = last - first;
+      const threshold = 0.15;
+      const previous = points[points.length - 2].temp;
+      const temps = points.map(point => point.temp);
+      const min = Math.min(...temps);
+      const max = Math.max(...temps);
+
+      if (previous === min && last - previous > 0.05) {
+        return { label: 'Low turn', className: 'low', stroke: '#b7791f', fill: '#fff4d6' };
+      }
+      if (previous === max && last - previous < -0.05) {
+        return { label: 'High turn', className: 'high', stroke: '#b7791f', fill: '#fff4d6' };
+      }
+      if (delta > threshold) return { label: 'Rising', className: 'rising', stroke: '#d64545', fill: '#fde8e8' };
+      if (delta < -threshold) return { label: 'Falling', className: 'falling', stroke: '#2563eb', fill: '#e5efff' };
+      return { label: 'Steady', className: 'steady', stroke: '#6b7280', fill: '#edf0f3' };
+    }
+
+    function renderSparkline(svg, points, trend) {
+      svg.innerHTML = '';
+      svg.setAttribute('viewBox', '0 0 96 30');
+      if (points.length < 2) return;
+
+      const values = points.map(point => point.temp);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const spread = Math.max(max - min, 0.1);
+      const coords = points.map((point, index) => {
+        const x = points.length === 1 ? 48 : (index / (points.length - 1)) * 94 + 1;
+        const y = 28 - ((point.temp - min) / spread) * 24;
+        return { x, y, point };
+      });
+
+      const namespace = 'http://www.w3.org/2000/svg';
+      const area = document.createElementNS(namespace, 'polygon');
+      area.setAttribute('points', `1,29 ${coords.map(coord => `${coord.x},${coord.y}`).join(' ')} 95,29`);
+      area.setAttribute('fill', trend.fill);
+      svg.appendChild(area);
+
+      const line = document.createElementNS(namespace, 'polyline');
+      line.setAttribute('points', coords.map(coord => `${coord.x},${coord.y}`).join(' '));
+      line.setAttribute('fill', 'none');
+      line.setAttribute('stroke', trend.stroke);
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('stroke-linecap', 'round');
+      line.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(line);
+
+      const tooltip = svg.nextElementSibling;
+      svg.onmousemove = event => {
+        const rect = svg.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 96;
+        const closest = coords.reduce((best, coord) => {
+          return Math.abs(coord.x - x) < Math.abs(best.x - x) ? coord : best;
+        }, coords[0]);
+        const time = asDate({ dt: closest.point.dt }).toLocaleString([], {
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
         });
-        const arrPerMinute = Object.values(perMinute).sort((a, b) => new Date(a.dt) - new Date(b.dt));
-        
-        const latest = arrPerMinute[arrPerMinute.length - 1];
-        const latestTemp = latest ? latest.temp.toFixed(2) : '';
-        const latestAgo = latest ? formatTimeAgo(latest.dt) : '';
-        // Get last 3.5 hours of data
-        const now = Date.now();
-        const threeHoursAgo = now - 3.5 * 60 * 60 * 1000;
-        const sixHoursAgo = now - 6.5 * 60 * 60 * 1000;  // New variable for 6 hours
-        const filtered = arrPerMinute
-          .filter(d => (new Date(d.dt + 'Z')).getTime() >= threeHoursAgo);
+        tooltip.hidden = false;
+        tooltip.textContent = `${time}: ${formatNumber(closest.point.temp, '°C')}`;
+        tooltip.style.top = `${Math.max(0, closest.y - 8)}px`;
+        tooltip.style.left = `${Math.min(closest.x + 10, 76)}px`;
+      };
+      svg.onmouseout = () => {
+        tooltip.hidden = true;
+      };
+    }
 
-        // Filter data for sparkline (6 hours)
-        const sparklineData = arrPerMinute
-          .filter(d => (new Date(d.dt + 'Z')).getTime() >= sixHoursAgo);
+    function updateRoomSelect(rooms) {
+      const select = document.getElementById('room-select');
+      const current = select.value || state.selectedRoom;
+      select.innerHTML = '<option value="all">All sensors</option>';
+      rooms.forEach(room => {
+        const option = document.createElement('option');
+        option.value = room;
+        option.textContent = displayRoom(room);
+        select.appendChild(option);
+      });
+      select.value = rooms.includes(current) ? current : 'all';
+      state.selectedRoom = select.value;
+    }
 
-        const first = sparklineData[0];
-        const firstTemp = first ? first.temp.toFixed(2) : '';
-        const firstAgo = first ? formatTimeAgo(first.dt) : '';
-        
-        // Find min/max for sparkline data (6 hours)
-        const minTemp = Math.min(...sparklineData.map(d => d.temp));
-        const maxTemp = Math.max(...sparklineData.map(d => d.temp));
-        const sparkData = sparklineData
-          .map(d => {
-            return {name:room, date: d.dt, value: d.temp - minTemp + 0.1, actualValue:d.temp};
-          });
+    function renderSummary(readings, rooms) {
+      const tbody = document.getElementById('room-summary');
+      tbody.innerHTML = '';
 
-        // Calculate trend state using last 3 hours of data
-        let trend = '→ Steady';
-        let stroke = '#888';
-        let fill = '#eee';
-        if (filtered.length >= 3) {
-          const last = filtered[filtered.length - 1].temp;
-          const prev = filtered[filtered.length - 2].temp;
-          const prev2 = filtered[filtered.length - 3].temp;
-          const delta = last - prev;
-          const threshold = 0.05; // Ignore changes smaller than this
-
-          // Find local min/max in the last 3 hours
-          const temps = filtered.map(d => d.temp);
-          const minIdx = temps.indexOf(minTemp);
-          const maxIdx = temps.indexOf(maxTemp);
-
-          // Inflected Low: min is at prev, and now rising
-          if (
-            minIdx === filtered.length - 2 &&
-            delta > threshold
-          ) {
-            trend = '↗ Inflected Low';
-            stroke = '#ff9800'; // orange
-            fill = '#ffe0b2';
-          }
-          // Inflected High: max is at prev, and now falling
-          else if (
-            maxIdx === filtered.length - 2 &&
-            delta < -threshold
-          ) {
-            trend = '↘ Inflected High';
-            stroke = '#03a9f4'; // light blue
-            fill = '#b3e5fc';
-          }
-          else if (delta > threshold) {
-            trend = '↑ Rising';
-            stroke = '#e53935'; // red
-            fill = '#ffcdd2';
-          }
-          else if (delta < -threshold) {
-            trend = '↓ Falling';
-            stroke = '#1e88e5'; // blue
-            fill = '#bbdefb';
-          }
-          else {
-            trend = '→ Steady';
-          }
-        } else if (filtered.length >= 2) {
-          const last = filtered[filtered.length - 1].temp;
-          const prev = filtered[filtered.length - 2].temp;
-          const delta = last - prev;
-          const threshold = 0.05;
-          if (delta > threshold) {
-            trend = '↑ Rising';
-            stroke = '#e53935';
-            fill = '#ffcdd2';
-          } else if (delta < -threshold) {
-            trend = '↓ Falling';
-            stroke = '#1e88e5';
-            fill = '#bbdefb';
-          } else {
-            trend = '→ Steady';
-          }
-        }
-        
-
-        // Generate a unique id for the sparkline canvas
-        const sparkId = `spark-${room.replace(/\s+/g, '-')}`;
-
-        const row = `<tr>
-          <td>${room}</td>
-          <td>${firstTemp} (${firstAgo})</td>
-          <td>${latestTemp} (${latestAgo})</td>
-          <td class="sparkline-cell">
-            <svg class="spark-${room}" width="100" height="20" stroke-width="2" stroke="${stroke}" fill="${fill}"></svg>
-            <span class="tooltip" hidden="true"></span>
+      rooms.forEach(room => {
+        const roomReadings = readings.filter(reading => reading.room === room);
+        const windowReadings = readingsInWindow(roomReadings);
+        const latest = roomReadings[roomReadings.length - 1];
+        const first = windowReadings[0];
+        const trend = trendFor(windowReadings);
+        const row = document.createElement('tr');
+        row.className = `room-row${state.selectedRoom === room ? ' active' : ''}`;
+        row.dataset.room = room;
+        row.innerHTML = `
+          <td>
+            <span class="room-name">${displayRoom(room)}</span>
+            <span class="device-name">${latest ? latest.device : 'No readings'}</span>
           </td>
-          <td>${trend}</td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', row);
+          <td>
+            <span class="temp-now">${latest ? formatNumber(latest.temp, '°') : '-'}</span>
+            <span class="reading-meta">${latest ? formatAgo(latest.dt) : ''}</span>
+          </td>
+          <td class="sparkline-cell">
+            <svg data-room="${room}" stroke-width="2" stroke="${trend.stroke}" fill="${trend.fill}"></svg>
+            <span class="tooltip" hidden></span>
+            <span class="reading-meta">${first && latest ? `${formatNumber(first.temp, '°')} to ${formatNumber(latest.temp, '°')}` : '-'}</span>
+          </td>
+          <td><span class="trend ${trend.className}">${trend.label}</span></td>
+        `;
+        tbody.appendChild(row);
 
-        var options = {
-          onmousemove(event, datapoint) {
-            var svg = findClosest(event.target, "svg");
-            var tooltip = svg.nextElementSibling;
-            var date = (new Date(datapoint.date + 'Z')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-
-            tooltip.hidden = false;
-            tooltip.textContent = `${date}: ${datapoint.actualValue.toFixed(2)}°C`;
-            tooltip.style.top = `${event.offsetY}px`;
-            tooltip.style.left = `${event.offsetX + 20}px`;
-          },
-
-          onmouseout() {
-            var svg = findClosest(event.target, "svg");
-            var tooltip = svg.nextElementSibling;
-
-            tooltip.hidden = true;
-          }
-        };
-
-        sparkline.sparkline(document.querySelector(`.spark-${room}`), sparkData, options);
+        const points = collapsePerMinute(windowReadings);
+        const svg = row.querySelector('svg');
+        renderSparkline(svg, points, trend);
       });
     }
 
-// Parse data and prepare for both summary and chart
-    function parseData(raw, mode) {
-      const rooms = {};
-      const chartConfig = {
+    function chartReadings(readings) {
+      const windowReadings = readingsInWindow(readings);
+      if (state.selectedRoom === 'all') return windowReadings;
+      return windowReadings.filter(reading => reading.room === state.selectedRoom);
+    }
+
+    function renderMetrics(readings) {
+      const selected = state.selectedRoom === 'all' ? 'All sensors' : displayRoom(state.selectedRoom);
+      const values = readings.map(valueFor).filter(Number.isFinite);
+      const latest = readings[readings.length - 1];
+      document.getElementById('metric-selected').textContent = selected;
+      document.getElementById('metric-latest').textContent = latest ? `${formatNumber(valueFor(latest), unit())} ${formatAgo(latest.dt)}` : '-';
+      document.getElementById('metric-range').textContent = values.length
+        ? `${formatNumber(Math.min(...values), unit())} / ${formatNumber(Math.max(...values), unit())}`
+        : '-';
+      document.getElementById('metric-count').textContent = `${readings.length}`;
+    }
+
+    function renderChart(readings) {
+      const selectedReadings = chartReadings(readings);
+      const rooms = [...new Set(selectedReadings.map(reading => reading.room))];
+      const datasets = rooms.map((room, index) => ({
+        label: displayRoom(room),
+        borderColor: COLOURS[index % COLOURS.length],
+        backgroundColor: COLOURS[index % COLOURS.length],
+        borderWidth: state.selectedRoom === 'all' ? 2 : 2.5,
+        pointRadius: state.selectedRoom === 'all' ? 0 : 1.5,
+        pointHoverRadius: 5,
+        tension: 0.18,
+        data: selectedReadings
+          .filter(reading => reading.room === room)
+          .map(reading => ({ x: reading.dt, y: valueFor(reading) })),
+      }));
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
         type: 'line',
-        data: { datasets: [] },
+        data: { datasets },
         options: {
           maintainAspectRatio: false,
-          interaction: { intersect: false, mode: 'nearest' },
-          stacked: true,
           responsive: true,
+          interaction: { intersect: false, mode: 'nearest' },
           spanGaps: true,
           elements: { point: { radius: 0 } },
-          plugins: { zoom: {
-              limits: {
-                x: { min: 'original', max: 'original' },
-              },
-              pan: {
-                enabled: true,
-                mode: 'x',
-                onPanStart: (e) => {
-                  if (e.chart.getZoomLevel() <= 1) return false;
+          plugins: {
+            legend: { display: true, position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label(context) {
+                  return `${context.dataset.label}: ${formatNumber(context.parsed.y, unit())}`;
                 },
               },
-              zoom: {
-                wheel: {
-                  enabled: true,
-                },
-                pinch: {
-                  enabled: true,
-                },
-                mode: 'x',
-              },
+            },
+            zoom: {
+              limits: { x: { min: 'original', max: 'original' } },
+              pan: { enabled: true, mode: 'x' },
+              zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
             },
           },
           scales: {
-            x: { type: 'time', time: {
+            x: {
+              type: 'time',
+              time: {
                 displayFormats: {
-                  millisecond: 'dd HH',
-                  second: 'dd HH',
-                  minute: 'dd HH',
-                  hour: 'dd HH',
+                  minute: 'dd HH:mm',
+                  hour: 'dd HH:mm',
                   day: 'MMM dd',
                   week: 'MMM dd',
-                  month: 'MMM',
-                  quarter: 'MMM',
-                  year: 'yyyy MMM',
                 },
-              } },
+              },
+              ticks: { maxRotation: 0 },
+            },
             y: {
               type: 'linear',
-              display: true,
-              stacked: false,
-              position: 'left',
-              min: 0,
-              title: {
-                text: mode === 'dp' ? 'Dew Point (C)' : 'Temperature (C)',
-                display: true,
-              },
+              title: { display: true, text: `${modeLabel()} (${unit()})` },
             },
           },
         },
-      };
-
-      raw.split('\n')
-        .filter(x => x.trim().length > 5)
-        .forEach(line => {
-          const [dt, loc, col, temp, hum, dp, battery] = line.split('\t');
-          if (!rooms[loc]) {
-            rooms[loc] = {id: Object.keys(rooms).length + 1, data:[]};
-            chartConfig.data.datasets.push({ label: loc, data: [] });
-          }
-          rooms[loc].data.push({ dt, temp: parseFloat(temp), dp: parseFloat(dp) });
-          chartConfig.data.datasets[rooms[loc].id - 1].data.push({
-            x: dt,
-            y: mode === 'dp' ? dp : temp
-          });
-        });
-      return { rooms, chartConfig };
-    }
-
-    // Render summary and chart
-    function renderAll(mode) {
-      fetch('data/data.txt').then(x => x.text()).then(data => {
-        const { rooms, chartConfig } = parseData(data, mode);
-        updateSummaryTable(rooms);
-        if (chart) chart.destroy();
-        chart = new Chart(ctx, chartConfig);
       });
+      renderMetrics(selectedReadings);
     }
 
-    // Tab logic
-    document.getElementById('show-summary').onclick = () => {
-      document.getElementById('summary-section').style.display = '';
-      document.getElementById('chart-section').style.display = 'none';
-    };
-    document.getElementById('show-chart').onclick = () => {
-      document.getElementById('summary-section').style.display = 'none';
-      document.getElementById('chart-section').style.display = '';
-    };
+    function renderLastUpdated(readings) {
+      const latest = readings[readings.length - 1];
+      document.getElementById('last-updated').textContent = latest
+        ? `Last reading ${formatAgo(latest.dt)} from ${displayRoom(latest.room)}`
+        : 'No readings found';
+    }
 
-    document.getElementById('refresh').addEventListener('click', (e) => {
-      window.location.reload();
+    async function renderAll() {
+      state.allReadings = await loadReadings();
+      const rooms = roomsFrom(state.allReadings);
+      updateRoomSelect(rooms);
+      renderLastUpdated(state.allReadings);
+      renderSummary(state.allReadings, rooms);
+      renderChart(state.allReadings);
+    }
+
+    document.getElementById('range-controls').addEventListener('click', event => {
+      if (!event.target.matches('button[data-range-hours]')) return;
+      state.rangeHours = Number(event.target.dataset.rangeHours);
+      document.querySelectorAll('[data-range-hours]').forEach(button => {
+        button.classList.toggle('active', button === event.target);
+      });
+      renderAll();
     });
-    document.getElementById('toggle').addEventListener('click', (e) => {
-      currentMode = currentMode === 'dp' ? 'temp' : 'dp';
-      renderAll(currentMode);
+
+    document.getElementById('room-select').addEventListener('change', event => {
+      state.selectedRoom = event.target.value;
+      renderSummary(state.allReadings, roomsFrom(state.allReadings));
+      renderChart(state.allReadings);
     });
-    // Initial render
-    renderAll(currentMode);
+
+    document.getElementById('mode-select').addEventListener('change', event => {
+      state.mode = event.target.value;
+      renderChart(state.allReadings);
+    });
+
+    document.getElementById('room-summary').addEventListener('click', event => {
+      const row = event.target.closest('.room-row');
+      if (!row) return;
+      state.selectedRoom = row.dataset.room;
+      document.getElementById('room-select').value = state.selectedRoom;
+      renderSummary(state.allReadings, roomsFrom(state.allReadings));
+      renderChart(state.allReadings);
+    });
+
+    document.getElementById('reset-zoom').addEventListener('click', () => {
+      if (chart) chart.resetZoom();
+    });
+
+    document.getElementById('refresh').addEventListener('click', renderAll);
+
+    renderAll().catch(error => {
+      document.getElementById('last-updated').textContent = error.message;
+      document.getElementById('room-summary').innerHTML = '<tr><td colspan="4" class="empty-state">No temperature data available.</td></tr>';
+    });
   </script>
 </body>
 
