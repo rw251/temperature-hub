@@ -16,7 +16,7 @@ logging.basicConfig(
 
 data_dir = Path("/data")
 if not data_dir.exists():
-    data_dir = Path(path.dirname(__file__)) / ".." / "data"
+    data_dir = Path(path.dirname(__file__)) / ".." / "data" / "shared"
 segments_dir = data_dir / "segments"
 index_file = data_dir / "index.json"
 legacy_data_file = data_dir / "data.txt"
@@ -58,16 +58,14 @@ def update_index(segment_name):
 
 
 def migrate_legacy_data_file():
-    if index_file.exists() or not legacy_data_file.exists():
+    if not legacy_data_file.exists():
         return
 
     segments_dir.mkdir(parents=True, exist_ok=True)
-    if list(segments_dir.glob("*.tsv")):
-        update_index_from_disk()
-        return
+    logging.info("Syncing legacy data.txt into daily segment files")
+    existing_lines_by_segment = {}
+    migrated_count = 0
 
-    logging.info("Migrating legacy data.txt into daily segment files")
-    segment_names = set()
     with open(legacy_data_file) as legacy:
         for line in legacy:
             if len(line.strip()) <= 5:
@@ -76,12 +74,26 @@ def migrate_legacy_data_file():
             if len(timestamp) < 10:
                 continue
             segment_name = f"{timestamp[:10]}.tsv"
-            with open(segments_dir / segment_name, "a") as segment:
-                segment.write(line)
-            segment_names.add(segment_name)
+            segment_path = segments_dir / segment_name
+            if segment_name not in existing_lines_by_segment:
+                if segment_path.exists():
+                    existing_lines_by_segment[segment_name] = set(
+                        segment_path.read_text().splitlines(keepends=True)
+                    )
+                else:
+                    existing_lines_by_segment[segment_name] = set()
 
-    for segment_name in segment_names:
-        update_index(segment_name)
+            if line in existing_lines_by_segment[segment_name]:
+                continue
+
+            with open(segment_path, "a") as segment:
+                segment.write(line)
+            existing_lines_by_segment[segment_name].add(line)
+            migrated_count += 1
+
+    update_index_from_disk()
+    if migrated_count:
+        logging.info(f"Synced {migrated_count} legacy readings into daily segments")
 
 
 def update_index_from_disk():
@@ -141,22 +153,25 @@ def on_message(client, userdata, msg):
             logging.error(f"Error processing message on topic {msg.topic}: {e}")
 
 
-mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-mqttc.on_connect = on_connect
-mqttc.on_message = on_message
-migrate_legacy_data_file()
-while True:
-    try:
-        logging.info("Attempting to connect to MQTT broker on port 1883...")
-        mqttc.connect("127.0.0.1", 1883, 60)
-        break
-    except:
-        logging.error("Inital connection failed ... retrying in 5s...")
-        sleep(5)
-        pass
+def run():
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqttc.on_connect = on_connect
+    mqttc.on_message = on_message
+    migrate_legacy_data_file()
+    while True:
+        try:
+            logging.info("Attempting to connect to MQTT broker on port 1883...")
+            mqttc.connect("127.0.0.1", 1883, 60)
+            break
+        except:
+            logging.error("Inital connection failed ... retrying in 5s...")
+            sleep(5)
+            pass
 
-# Blocking call that processes network traffic, dispatches callbacks and
-# handles reconnecting.
-# Other loop*() functions are available that give a threaded interface and a
-# manual interface.
-mqttc.loop_forever()
+    # Blocking call that processes network traffic, dispatches callbacks and
+    # handles reconnecting.
+    mqttc.loop_forever()
+
+
+if __name__ == "__main__":
+    run()

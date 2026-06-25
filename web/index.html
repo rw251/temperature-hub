@@ -499,6 +499,12 @@
       return response.text();
     }
 
+    async function fetchJson(path) {
+      const response = await fetch(path, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Could not fetch ${path}`);
+      return response.json();
+    }
+
     function segmentInRange(segmentName) {
       if (!state.rangeHours) return true;
       const segmentDate = new Date(`${segmentName.replace('.tsv', '')}T23:59:59Z`);
@@ -507,18 +513,31 @@
     }
 
     async function loadReadings() {
-      try {
-        const indexResponse = await fetch('data/index.json', { cache: 'no-store' });
-        if (!indexResponse.ok) throw new Error('No segment index yet');
-        const index = await indexResponse.json();
-        const segmentNames = (index.segments || []).filter(segmentInRange);
-        const segmentTexts = await Promise.all(
-          segmentNames.map(name => fetchText(`data/segments/${name}`))
-        );
-        return parseData(segmentTexts.join('\n'));
-      } catch (error) {
-        return fetchText('data/data.txt').then(parseData);
+      const dataRoots = ['data/shared', 'data'];
+      const errors = [];
+
+      for (const root of dataRoots) {
+        try {
+          const index = await fetchJson(`${root}/index.json`);
+          const segmentNames = (index.segments || []).filter(segmentInRange);
+          const segmentTexts = await Promise.all(
+            segmentNames.map(name => fetchText(`${root}/segments/${name}`))
+          );
+          return parseData(segmentTexts.join('\n'));
+        } catch (error) {
+          errors.push(error.message);
+        }
       }
+
+      for (const root of dataRoots) {
+        try {
+          return await fetchText(`${root}/data.txt`).then(parseData);
+        } catch (error) {
+          errors.push(error.message);
+        }
+      }
+
+      throw new Error(errors.join('; '));
     }
 
     function roomsFrom(readings) {
