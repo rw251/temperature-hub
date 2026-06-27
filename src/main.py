@@ -23,7 +23,9 @@ config_file = Path(path.dirname(__file__)) / "config.json"
 mqtt_host = getenv("MQTT_HOST", "mosquitto")
 
 
-def append_reading(timestamp, location, device, temperature, humidity, dew_point, battery):
+def append_reading(
+    timestamp, location, device, temperature, humidity, dew_point, battery
+):
     segments_dir.mkdir(parents=True, exist_ok=True)
     segment_name = f"{timestamp.date().isoformat()}.tsv"
     segment_path = segments_dir / segment_name
@@ -60,6 +62,7 @@ def write_index(segments):
         tmp.write("\n")
         tmp_path = Path(tmp.name)
     tmp_path.replace(index_file)
+    index_file.chmod(0o644)
 
 
 def update_index_from_disk():
