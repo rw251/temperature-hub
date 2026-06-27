@@ -1,16 +1,12 @@
 services:
-  python-mqtt:
-    container_name: temperature-hub-mqtt
+  mosquitto:
+    container_name: temperature-hub-mosquitto
+    image: eclipse-mosquitto:2.0.22
     restart: unless-stopped
-    build:
-      context: .
-      dockerfile: python-mqtt.Dockerfile
     volumes:
-      - ./data/shared:/data
-      - ./src:/app
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
     healthcheck:
-      # This is an example healthcheck. You may need to install mosquitto-clients
-      # in your python-mqtt.Dockerfile or use a different command to check if the broker is ready.
       test:
         [
           "CMD",
@@ -27,9 +23,33 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 10s
     ports:
       - "1883:1883"
+
+  ingester:
+    container_name: temperature-hub-ingester
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ingester.Dockerfile
+    volumes:
+      - ./data/shared:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import socket; socket.create_connection(('mosquitto', 1883), 2).close()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      mosquitto:
+        condition: service_healthy
 
   webserver:
     container_name: temperature-hub-webserver
@@ -38,14 +58,19 @@ services:
       context: .
       dockerfile: webserver.Dockerfile
     volumes:
-      - ./data/shared:/app/data/shared
-      - ./web:/app
+      - ./data/shared:/usr/share/nginx/html/data/shared:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
-      - "8000:8000"
+      - "8000:80"
 
   zigbee2mqtt:
     container_name: temperature-hub-zigbee2mqtt
-    image: ghcr.io/koenkk/zigbee2mqtt
+    image: ghcr.io/koenkk/zigbee2mqtt:2.12.0
     restart: unless-stopped
     volumes:
       - ./data/zigbee2mqtt:/app/data # Persistent data for Z2M
@@ -54,7 +79,7 @@ services:
       - 8080:8080
     environment:
       # - ZIGBEE2MQTT_CONFIG_MQTT_BASE_TOPIC=zigbee2mqtt
-      # - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://python-mqtt:1883
+      # - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://mosquitto:1883
       # - ZIGBEE2MQTT_CONFIG_MQTT_INCLUDE_DEVICE_INFORMATION=true
       # - ZIGBEE2MQTT_CONFIG_SERIAL_PORT=tcp://192.168.1.11:8888
       # - ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER=ezsp
@@ -67,9 +92,13 @@ services:
       # - ZIGBEE2MQTT_CONFIG_HOMEASSISTANT=false
       # - ZIGBEE2MQTT_CONFIG_FRONTEND=true
       - TZ=Europe/London
+      - ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://mosquitto:1883
       - Z2M_ONBOARD_NO_SERVER=1
     # network_mode: host
     # privileged: true
     depends_on:
-      python-mqtt:
+      mosquitto:
         condition: service_healthy
+
+volumes:
+  mosquitto-data:

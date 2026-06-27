@@ -4,7 +4,7 @@ import logging
 from math import exp, log
 from datetime import datetime
 from pathlib import Path
-from os import path
+from os import getenv, path
 from time import sleep
 from tempfile import NamedTemporaryFile
 
@@ -19,8 +19,8 @@ if not data_dir.exists():
     data_dir = Path(path.dirname(__file__)) / ".." / "data" / "shared"
 segments_dir = data_dir / "segments"
 index_file = data_dir / "index.json"
-legacy_data_file = data_dir / "data.txt"
 config_file = Path(path.dirname(__file__)) / "config.json"
+mqtt_host = getenv("MQTT_HOST", "mosquitto")
 
 
 def append_reading(timestamp, location, device, temperature, humidity, dew_point, battery):
@@ -49,7 +49,12 @@ def update_index(segment_name):
         index = {"version": 1, "segments": []}
 
     segments = sorted({*index.get("segments", []), segment_name})
-    index = {"version": 1, "segments": segments}
+    write_index(segments)
+
+
+def write_index(segments):
+    data_dir.mkdir(parents=True, exist_ok=True)
+    index = {"version": 1, "segments": sorted(segments)}
     with NamedTemporaryFile("w", dir=data_dir, delete=False) as tmp:
         json.dump(index, tmp)
         tmp.write("\n")
@@ -57,69 +62,9 @@ def update_index(segment_name):
     tmp_path.replace(index_file)
 
 
-def segment_name_from_legacy_line(line):
-    if "\0" in line:
-        return None
-
-    timestamp = line.split("\t", 1)[0]
-    if len(timestamp) < 10:
-        return None
-
-    try:
-        reading_date = datetime.strptime(timestamp[:10], "%Y-%m-%d").date()
-    except ValueError:
-        return None
-
-    return f"{reading_date.isoformat()}.tsv"
-
-
-def migrate_legacy_data_file():
-    if not legacy_data_file.exists():
-        return
-
-    segments_dir.mkdir(parents=True, exist_ok=True)
-    logging.info("Syncing legacy data.txt into daily segment files")
-    existing_lines_by_segment = {}
-    migrated_count = 0
-
-    with open(legacy_data_file) as legacy:
-        skipped_count = 0
-        for line in legacy:
-            if len(line.strip()) <= 5:
-                continue
-
-            segment_name = segment_name_from_legacy_line(line)
-            if not segment_name:
-                skipped_count += 1
-                continue
-
-            segment_path = segments_dir / segment_name
-            if segment_name not in existing_lines_by_segment:
-                if segment_path.exists():
-                    existing_lines_by_segment[segment_name] = set(
-                        segment_path.read_text().splitlines(keepends=True)
-                    )
-                else:
-                    existing_lines_by_segment[segment_name] = set()
-
-            if line in existing_lines_by_segment[segment_name]:
-                continue
-
-            with open(segment_path, "a") as segment:
-                segment.write(line)
-            existing_lines_by_segment[segment_name].add(line)
-            migrated_count += 1
-
-    update_index_from_disk()
-    if migrated_count:
-        logging.info(f"Synced {migrated_count} legacy readings into daily segments")
-    if skipped_count:
-        logging.warning(f"Skipped {skipped_count} malformed legacy readings")
-
-
 def update_index_from_disk():
-    for segment_path in segments_dir.glob("*.tsv"):
-        update_index(segment_path.name)
+    segments_dir.mkdir(parents=True, exist_ok=True)
+    write_index(segment_path.name for segment_path in segments_dir.glob("*.tsv"))
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -178,11 +123,11 @@ def run():
     mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     mqttc.on_connect = on_connect
     mqttc.on_message = on_message
-    migrate_legacy_data_file()
+    update_index_from_disk()
     while True:
         try:
-            logging.info("Attempting to connect to MQTT broker on port 1883...")
-            mqttc.connect("127.0.0.1", 1883, 60)
+            logging.info(f"Attempting to connect to MQTT broker at {mqtt_host}:1883...")
+            mqttc.connect(mqtt_host, 1883, 60)
             break
         except:
             logging.error("Inital connection failed ... retrying in 5s...")

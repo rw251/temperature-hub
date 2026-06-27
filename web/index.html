@@ -529,14 +529,6 @@
         }
       }
 
-      for (const root of dataRoots) {
-        try {
-          return await fetchText(`${root}/data.txt`).then(parseData);
-        } catch (error) {
-          errors.push(error.message);
-        }
-      }
-
       throw new Error(errors.join('; '));
     }
 

@@ -1,6 +1,20 @@
 ## Overview
 
-This ...
+Temperature Hub records temperature, humidity, dew point, and battery readings
+from Zigbee2MQTT and serves a local browser dashboard.
+
+The runtime is managed with Docker Compose:
+
+- `mosquitto`: MQTT broker using the mounted `mosquitto.conf`.
+- `ingester`: Python MQTT subscriber that writes daily TSV segments under
+  `data/shared/segments` and maintains `data/shared/index.json`.
+- `webserver`: nginx static server for `web/index.html`, with `data/shared`
+  mounted read-only for the dashboard.
+- `zigbee2mqtt`: Zigbee2MQTT frontend and device bridge.
+
+Zigbee2MQTT should publish to `mqtt://mosquitto:1883` inside the Compose
+network. If `data/zigbee2mqtt/configuration.yaml` is restored from a backup,
+check that it uses that broker name rather than the old `python-mqtt` service.
 
 ## How to deploy
 
