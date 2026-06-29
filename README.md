@@ -11,10 +11,18 @@ The runtime is managed with Docker Compose:
 - `webserver`: nginx static server for `web/index.html`, with `data/shared`
   mounted read-only for the dashboard.
 - `zigbee2mqtt`: Zigbee2MQTT frontend and device bridge.
+- `watchdog`: MQTT subscriber that restarts Zigbee2MQTT if dewpoint sensor
+  readings stop arriving while the broker is still reachable.
 
 Zigbee2MQTT should publish to `mqtt://mosquitto:1883` inside the Compose
 network. If `data/zigbee2mqtt/configuration.yaml` is restored from a backup,
 check that it uses that broker name rather than the old `python-mqtt` service.
+
+The watchdog is intended to recover from cases where Zigbee2MQTT remains
+running but stops receiving sensor updates after a coordinator or network
+connection fault. It watches `zigbee2mqtt/dewpoint/+` and restarts only the
+`temperature-hub-zigbee2mqtt` container after two hours without readings. The
+timeout can be tuned with `STALE_AFTER_SECONDS` in `docker-compose.yml`.
 
 ## How to deploy
 

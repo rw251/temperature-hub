@@ -100,5 +100,26 @@ services:
       mosquitto:
         condition: service_healthy
 
+  watchdog:
+    container_name: temperature-hub-watchdog
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: watchdog.Dockerfile
+    environment:
+      - MQTT_HOST=mosquitto
+      - WATCH_TOPIC=zigbee2mqtt/dewpoint/+
+      - TARGET_CONTAINER=temperature-hub-zigbee2mqtt
+      - STALE_AFTER_SECONDS=3600
+      - RESTART_COOLDOWN_SECONDS=1800
+      - STARTUP_GRACE_SECONDS=900
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      zigbee2mqtt:
+        condition: service_started
+
 volumes:
   mosquitto-data:
