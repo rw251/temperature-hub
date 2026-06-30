@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from typing import Optional
 
 import docker
 import paho.mqtt.client as mqtt
@@ -19,16 +20,15 @@ RESTART_COOLDOWN_SECONDS = int(os.getenv("RESTART_COOLDOWN_SECONDS", str(30 * 60
 STARTUP_GRACE_SECONDS = int(os.getenv("STARTUP_GRACE_SECONDS", str(15 * 60)))
 CHECK_INTERVAL_SECONDS = int(os.getenv("CHECK_INTERVAL_SECONDS", "60"))
 
-last_message_at = time.monotonic()
+last_message_at: Optional[float] = None
 last_restart_at = 0.0
 connected = False
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    global connected, last_message_at
+    global connected
     if reason_code == 0:
         connected = True
-        last_message_at = time.monotonic()
         logging.info("Connected to MQTT broker; watching %s", WATCH_TOPIC)
         client.subscribe(WATCH_TOPIC)
     else:
@@ -59,7 +59,7 @@ def restart_target():
 
 
 def main():
-    global last_restart_at
+    global last_message_at, last_restart_at
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
@@ -71,11 +71,20 @@ def main():
     started_at = time.monotonic()
     while True:
         now = time.monotonic()
-        stale_for = now - last_message_at
         in_grace = now - started_at < STARTUP_GRACE_SECONDS
         in_cooldown = now - last_restart_at < RESTART_COOLDOWN_SECONDS
 
-        if connected and not in_grace and not in_cooldown and stale_for > STALE_AFTER_SECONDS:
+        if last_message_at is None:
+            stale_for = 0.0
+        else:
+            stale_for = now - last_message_at
+
+        if (
+            connected
+            and not in_grace
+            and not in_cooldown
+            and stale_for > STALE_AFTER_SECONDS
+        ):
             try:
                 restart_target()
                 last_restart_at = now
