@@ -435,6 +435,7 @@
 
     const ctx = document.getElementById('myChart');
     const READING_BURST_MS = 5000;
+    const STALE_READING_FOLLOWUP_MS = 20 * 60 * 1000;
 
     function asDate(reading) {
       return new Date(`${reading.dt}Z`);
@@ -503,6 +504,43 @@
       return collapsed.sort((a, b) => readingTime(a) - readingTime(b));
     }
 
+    function sameReadingValues(a, b) {
+      return a.temp === b.temp
+        && a.humidity === b.humidity
+        && a.dp === b.dp
+        && a.battery === b.battery;
+    }
+
+    function filterStaleReadings(readings) {
+      const readingsBySensor = new Map();
+
+      readings.forEach(reading => {
+        const key = readingKey(reading);
+        if (!readingsBySensor.has(key)) readingsBySensor.set(key, []);
+        readingsBySensor.get(key).push(reading);
+      });
+
+      const staleReadings = new Set();
+      readingsBySensor.forEach(sensorReadings => {
+        for (let index = 1; index < sensorReadings.length - 1; index += 1) {
+          const previous = sensorReadings[index - 1];
+          const reading = sensorReadings[index];
+          const next = sensorReadings[index + 1];
+          const nextGap = readingTime(next) - readingTime(reading);
+
+          if (sameReadingValues(previous, reading) && nextGap <= STALE_READING_FOLLOWUP_MS) {
+            staleReadings.add(reading);
+          }
+        }
+      });
+
+      return readings.filter(reading => !staleReadings.has(reading));
+    }
+
+    function cleanReadings(readings) {
+      return filterStaleReadings(collapseReadingBursts(readings));
+    }
+
     function parseData(raw) {
       const readings = raw.split('\n')
         .map(line => line.trim())
@@ -522,7 +560,7 @@
         .filter(reading => reading.dt && reading.room && Number.isFinite(reading.temp))
         .sort((a, b) => asDate(a) - asDate(b));
 
-      return collapseReadingBursts(readings);
+      return cleanReadings(readings);
     }
 
     async function fetchText(path) {
