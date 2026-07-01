@@ -434,6 +434,7 @@
     let chart;
 
     const ctx = document.getElementById('myChart');
+    const READING_BURST_MS = 5000;
 
     function asDate(reading) {
       return new Date(`${reading.dt}Z`);
@@ -473,8 +474,37 @@
       return 'Temperature';
     }
 
+    function readingTime(reading) {
+      return asDate(reading).getTime();
+    }
+
+    function readingKey(reading) {
+      return `${reading.room}\t${reading.device}`;
+    }
+
+    function collapseReadingBursts(readings) {
+      const collapsed = [];
+      const indexesBySensor = new Map();
+
+      readings.forEach(reading => {
+        const key = readingKey(reading);
+        const existingIndex = indexesBySensor.get(key);
+        const existing = existingIndex === undefined ? null : collapsed[existingIndex];
+
+        if (existing && readingTime(reading) - readingTime(existing) <= READING_BURST_MS) {
+          collapsed[existingIndex] = reading;
+          return;
+        }
+
+        indexesBySensor.set(key, collapsed.length);
+        collapsed.push(reading);
+      });
+
+      return collapsed.sort((a, b) => readingTime(a) - readingTime(b));
+    }
+
     function parseData(raw) {
-      return raw.split('\n')
+      const readings = raw.split('\n')
         .map(line => line.trim())
         .filter(line => line.length > 5)
         .map(line => {
@@ -491,6 +521,8 @@
         })
         .filter(reading => reading.dt && reading.room && Number.isFinite(reading.temp))
         .sort((a, b) => asDate(a) - asDate(b));
+
+      return collapseReadingBursts(readings);
     }
 
     async function fetchText(path) {
