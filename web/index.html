@@ -436,9 +436,35 @@
     const ctx = document.getElementById('myChart');
     const READING_BURST_MS = 5000;
     const STALE_READING_FOLLOWUP_MS = 20 * 60 * 1000;
+    const OUTLIER_MAX_NEIGHBOUR_GAP_MS = 45 * 60 * 1000;
+    const OUTLIER_NEIGHBOUR_TEMP_DELTA = 0.08;
+    const OUTLIER_READING_TEMP_DELTA = 0.3;
+    const DISPLAY_TIME_ZONE = 'Europe/London';
+
+    const chartTickFormatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: DISPLAY_TIME_ZONE,
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+
+    const chartTooltipFormatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: DISPLAY_TIME_ZONE,
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZoneName: 'short',
+    });
 
     function asDate(reading) {
       return new Date(`${reading.dt}Z`);
+    }
+
+    function formatLocalDateTime(date) {
+      return chartTooltipFormatter.format(date);
     }
 
     function formatAgo(dt) {
@@ -512,16 +538,8 @@
     }
 
     function filterStaleReadings(readings) {
-      const readingsBySensor = new Map();
-
-      readings.forEach(reading => {
-        const key = readingKey(reading);
-        if (!readingsBySensor.has(key)) readingsBySensor.set(key, []);
-        readingsBySensor.get(key).push(reading);
-      });
-
       const staleReadings = new Set();
-      readingsBySensor.forEach(sensorReadings => {
+      readingsGroupedBySensor(readings).forEach(sensorReadings => {
         for (let index = 1; index < sensorReadings.length - 1; index += 1) {
           const previous = sensorReadings[index - 1];
           const reading = sensorReadings[index];
@@ -537,8 +555,50 @@
       return readings.filter(reading => !staleReadings.has(reading));
     }
 
+    function readingsGroupedBySensor(readings) {
+      const readingsBySensor = new Map();
+
+      readings.forEach(reading => {
+        const key = readingKey(reading);
+        if (!readingsBySensor.has(key)) readingsBySensor.set(key, []);
+        readingsBySensor.get(key).push(reading);
+      });
+
+      return readingsBySensor;
+    }
+
+    function filterTemperatureOutliers(readings) {
+      const outlierReadings = new Set();
+
+      readingsGroupedBySensor(readings).forEach(sensorReadings => {
+        for (let index = 1; index < sensorReadings.length - 1; index += 1) {
+          const previous = sensorReadings[index - 1];
+          const reading = sensorReadings[index];
+          const next = sensorReadings[index + 1];
+          const maxNeighbourGap = Math.max(
+            readingTime(reading) - readingTime(previous),
+            readingTime(next) - readingTime(reading)
+          );
+          const neighbourDelta = Math.abs(next.temp - previous.temp);
+          const previousDelta = Math.abs(reading.temp - previous.temp);
+          const nextDelta = Math.abs(reading.temp - next.temp);
+
+          if (
+            maxNeighbourGap <= OUTLIER_MAX_NEIGHBOUR_GAP_MS
+            && neighbourDelta <= OUTLIER_NEIGHBOUR_TEMP_DELTA
+            && previousDelta >= OUTLIER_READING_TEMP_DELTA
+            && nextDelta >= OUTLIER_READING_TEMP_DELTA
+          ) {
+            outlierReadings.add(reading);
+          }
+        }
+      });
+
+      return readings.filter(reading => !outlierReadings.has(reading));
+    }
+
     function cleanReadings(readings) {
-      return filterStaleReadings(collapseReadingBursts(readings));
+      return filterTemperatureOutliers(filterStaleReadings(collapseReadingBursts(readings)));
     }
 
     function parseData(raw) {
@@ -680,11 +740,7 @@
         const closest = coords.reduce((best, coord) => {
           return Math.abs(coord.x - x) < Math.abs(best.x - x) ? coord : best;
         }, coords[0]);
-        const time = asDate({ dt: closest.point.dt }).toLocaleString([], {
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        const time = formatLocalDateTime(asDate({ dt: closest.point.dt }));
         tooltip.hidden = false;
         tooltip.textContent = `${time}: ${formatNumber(closest.point.temp, '°C')}`;
         tooltip.style.top = `${Math.max(0, closest.y - 8)}px`;
@@ -777,7 +833,7 @@
         tension: 0.18,
         data: selectedReadings
           .filter(reading => reading.room === room)
-          .map(reading => ({ x: reading.dt, y: valueFor(reading) })),
+          .map(reading => ({ x: readingTime(reading), y: valueFor(reading) })),
       }));
 
       if (chart) chart.destroy();
@@ -794,6 +850,10 @@
             legend: { display: true, position: 'bottom' },
             tooltip: {
               callbacks: {
+                title(context) {
+                  const value = context[0]?.parsed.x;
+                  return Number.isFinite(value) ? formatLocalDateTime(new Date(value)) : '';
+                },
                 label(context) {
                   return `${context.dataset.label}: ${formatNumber(context.parsed.y, unit())}`;
                 },
@@ -816,7 +876,12 @@
                   week: 'MMM dd',
                 },
               },
-              ticks: { maxRotation: 0 },
+              ticks: {
+                maxRotation: 0,
+                callback(value) {
+                  return chartTickFormatter.format(new Date(value));
+                },
+              },
             },
             y: {
               type: 'linear',
