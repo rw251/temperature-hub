@@ -1,4 +1,6 @@
 shared/*
+secrets/*
+!secrets/*.example
 zigbee2mqtt/*
 !zigbee2mqtt/configuration.yaml.example
 !zigbee2mqtt/external_extensions/
