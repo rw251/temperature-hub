@@ -2,7 +2,6 @@
 set -euo pipefail
 
 DOMAIN="${TEMP_HUB_DOMAIN:-temp.rw251.com}"
-LAN_IP="${TEMP_HUB_LAN_IP:-192.168.1.96}"
 UPSTREAM="${TEMP_HUB_UPSTREAM:-http://127.0.0.1:8000}"
 CERTBOT_EMAIL="${TEMP_HUB_CERTBOT_EMAIL:-}"
 CLOUDFLARE_CREDENTIALS="${TEMP_HUB_CLOUDFLARE_CREDENTIALS:-/etc/letsencrypt/cloudflare.ini}"
@@ -10,7 +9,6 @@ CLOUDFLARE_CREDENTIALS="${TEMP_HUB_CLOUDFLARE_CREDENTIALS:-/etc/letsencrypt/clou
 if [ "$(id -u)" -ne 0 ]; then
     exec sudo env \
         TEMP_HUB_DOMAIN="$DOMAIN" \
-        TEMP_HUB_LAN_IP="$LAN_IP" \
         TEMP_HUB_UPSTREAM="$UPSTREAM" \
         TEMP_HUB_CERTBOT_EMAIL="$CERTBOT_EMAIL" \
         TEMP_HUB_CLOUDFLARE_CREDENTIALS="$CLOUDFLARE_CREDENTIALS" \
@@ -21,7 +19,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 install_packages() {
     local missing=0
-    for package in nginx dnsmasq certbot python3-certbot-dns-cloudflare; do
+    for package in nginx certbot python3-certbot-dns-cloudflare; do
         if ! dpkg -s "$package" >/dev/null 2>&1; then
             missing=1
         fi
@@ -29,20 +27,17 @@ install_packages() {
 
     if [ "$missing" -eq 1 ]; then
         apt-get update
-        apt-get install -y nginx dnsmasq certbot python3-certbot-dns-cloudflare
+        apt-get install -y nginx certbot python3-certbot-dns-cloudflare
     fi
 }
 
-configure_dnsmasq() {
-    install -d -m 0755 /etc/dnsmasq.d
-    cat > /etc/dnsmasq.d/temperature-hub.conf <<EOF
-# Managed by temperature-hub/scripts/configure-host.sh
-local-service
-address=/${DOMAIN}/${LAN_IP}
-EOF
-
-    systemctl enable dnsmasq
-    systemctl restart dnsmasq
+remove_old_local_dns_config() {
+    if [ -f /etc/dnsmasq.d/temperature-hub.conf ]; then
+        rm -f /etc/dnsmasq.d/temperature-hub.conf
+        if systemctl is-active --quiet dnsmasq; then
+            systemctl restart dnsmasq
+        fi
+    fi
 }
 
 issue_certificate_if_needed() {
@@ -138,9 +133,9 @@ EOF
 }
 
 install_packages
-configure_dnsmasq
+remove_old_local_dns_config
 issue_certificate_if_needed
 configure_nginx
 configure_certbot_renewal_hook
 
-echo "Host configuration complete for ${DOMAIN} -> ${UPSTREAM} with local DNS ${DOMAIN} -> ${LAN_IP}."
+echo "Host configuration complete for ${DOMAIN} -> ${UPSTREAM}."

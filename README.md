@@ -61,12 +61,12 @@ reboot.
 The Pi can serve the dashboard at `https://temp.rw251.com` without exposing the
 service to the public internet. The setup uses:
 
+- A public Cloudflare `DNS only` A record:
+  `temp.rw251.com -> 192.168.1.96`.
 - Cloudflare DNS API access for Let's Encrypt DNS-01 validation.
 - `certbot` with the Cloudflare DNS plugin for certificate issuance and renewal.
 - Host-level `nginx` as the HTTPS reverse proxy to the existing Docker webserver
   at `127.0.0.1:8000`.
-- `dnsmasq` on the Pi for the LAN DNS override:
-  `temp.rw251.com -> 192.168.1.96`.
 
 The host setup is automated by `scripts/configure-host.sh`. The common
 `update.sh` script runs that hook after `git pull` when the hook exists, then
@@ -79,17 +79,22 @@ rebuilds the Docker containers as usual.
 3. At the domain registrar for `rw251.com`, change the authoritative
    nameservers to the two Cloudflare nameservers shown for the zone.
 4. Wait until Cloudflare shows the zone as active.
-5. Do not add a public `A` record for `temp.rw251.com` unless you later want the
-   dashboard reachable from outside the LAN. Certbot only needs permission to
-   create temporary `_acme-challenge.temp.rw251.com` TXT records.
-6. In Cloudflare, open **My Profile > API Tokens**.
-7. Select **Create Token**.
-8. Use the **Edit zone DNS** template, or create a custom token with:
+5. Add the dashboard DNS record:
+   - Type: `A`
+   - Name: `temp`
+   - IPv4 address: `192.168.1.96`
+   - Proxy status: `DNS only`
+   - TTL: `Auto`
+6. Ignore Cloudflare's origin IP exposure warning for this record. The IP is a
+   private LAN address, so it is not reachable from the public internet.
+7. In Cloudflare, open **My Profile > API Tokens**.
+8. Select **Create Token**.
+9. Use the **Edit zone DNS** template, or create a custom token with:
    - Permissions: `Zone / DNS / Edit`
    - Zone Resources: `Include / Specific zone / rw251.com`
-9. Continue to summary, create the token, and copy the token secret immediately.
+10. Continue to summary, create the token, and copy the token secret immediately.
    Cloudflare only shows it once.
-10. On the Pi, create `/etc/letsencrypt/cloudflare.ini`:
+11. On the Pi, create `/etc/letsencrypt/cloudflare.ini`:
 
    ```bash
    sudo install -d -m 0700 /etc/letsencrypt
@@ -120,24 +125,19 @@ cd ~/temperature-hub
 ./update.sh
 ```
 
-The first run installs `nginx`, `dnsmasq`, `certbot`, and
-`python3-certbot-dns-cloudflare`; configures local DNS; obtains the certificate
-if `/etc/letsencrypt/cloudflare.ini` exists; writes the nginx reverse proxy; and
-adds a Certbot renewal deploy hook that reloads nginx.
+The first run installs `nginx`, `certbot`, and
+`python3-certbot-dns-cloudflare`; obtains the certificate if
+`/etc/letsencrypt/cloudflare.ini` exists; writes the nginx reverse proxy; and adds
+a Certbot renewal deploy hook that reloads nginx.
 
 If the Cloudflare credentials file does not exist yet, the script configures
-HTTP reverse proxying and local DNS, skips certificate issuance, and prints the
-credential path to create. Create the file, then rerun `./update.sh`.
-
-Set LAN clients to use the Pi as their DNS server (`192.168.1.96`) so
-`temp.rw251.com` resolves locally. If the TalkTalk router cannot advertise a
-custom DNS server via DHCP, configure DNS manually on the devices that should use
-the dashboard, or move DHCP/DNS to Pi-hole/dnsmasq.
+HTTP reverse proxying, skips certificate issuance, and prints the credential path
+to create. Create the file, then rerun `./update.sh`.
 
 Useful checks:
 
 ```bash
-nslookup temp.rw251.com 192.168.1.96
+nslookup temp.rw251.com
 curl -I http://192.168.1.96:8000
 curl -I https://temp.rw251.com
 sudo certbot renew --dry-run
