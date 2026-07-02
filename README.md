@@ -28,6 +28,34 @@ timeout can be tuned with `STALE_AFTER_SECONDS` in `docker-compose.yml`.
 
 See the README in the parent repository.
 
+### Router DHCP reservation
+
+Temperature Hub should use a router-managed DHCP reservation rather than a
+static IP override in `/etc/dhcpcd.conf`.
+
+On a TalkTalk Wi-Fi Hub 2:
+
+1. Log in to `http://192.168.1.1`.
+2. Open `http://192.168.1.1/2.0/gui/#/mybox/DHCP`.
+3. Click **Add reserved address**.
+4. Enter the Pi Wi-Fi MAC address and the reserved IP address.
+5. Click **Apply**.
+
+For the current Pi:
+
+```text
+MAC: 2C:CF:67:FA:02:F7
+IP: 192.168.1.10
+```
+
+Keep the reserved IP inside the router's DHCP pool. Do not set `STATIC_IP` in
+`config.env`; if it is unset, `flash.sh` leaves the image configured for DHCP.
+
+On an existing Pi, remove any old static override from `/etc/dhcpcd.conf` by
+commenting out the `interface wlan0`, `static ip_address`, `static routers`, and
+`static domain_name_servers` lines that were added for Temperature Hub, then
+reboot.
+
 ## Developer Workflow
 
 This project is managed as a Git submodule within the main `pi-images` flasher repository.
